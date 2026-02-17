@@ -1,5 +1,6 @@
 export type User = {
     id: number;
+    tenant_id: string | null;
     name: string;
     email: string;
     avatar?: string;
@@ -11,6 +12,15 @@ export type User = {
 
 export type Auth = {
     user: User;
+    roles: string[];
+    permissions: string[];
+};
+
+export type Tenant = {
+    id: string;
+    name: string;
+    slug: string;
+    logo_url: string | null;
 };
 
 export type TwoFactorConfigContent = {
