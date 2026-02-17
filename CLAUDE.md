@@ -61,6 +61,7 @@ This project has domain-specific skills available. You MUST activate the relevan
 ## Documentation Files
 
 - You must only create documentation files if explicitly requested by the user.
+- Follow `PR_GUIDELINES.md` when creating pull request descriptions.
 
 ## Replies
 
