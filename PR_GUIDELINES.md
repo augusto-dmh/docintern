@@ -66,3 +66,4 @@ As the project grows, keeping development guidelines consistent and accessible b
 3. **Surface non-obvious decisions** — Call out trade-offs, alternatives considered, or anything that might surprise a reviewer
 4. **Keep it scannable** — Use headers, bullet points, and numbered lists over long paragraphs
 5. **Link context** — Reference issues, docs, or discussions so reviewers can dig deeper if needed
+6. **Don't reference planning artifacts** — Never link or mention specification files, design docs, or plan files that aren't part of the codebase. The PR description should be self-contained
