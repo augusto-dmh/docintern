@@ -1,0 +1,191 @@
+services:
+  # ——————————————————————————————————————————————
+  # Laravel Application (PHP-FPM)
+  # ——————————————————————————————————————————————
+  app:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+      args:
+        USER_ID: ${DOCKER_USER_ID:-1000}
+        GROUP_ID: ${DOCKER_GROUP_ID:-1000}
+    container_name: docintern-app
+    restart: unless-stopped
+    volumes:
+      - .:/var/www/html
+      - /var/www/html/vendor # Prevent vendor override from host
+    environment:
+      - APP_ENV=${APP_ENV:-local}
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - MAIL_HOST=mailpit
+      - MAIL_PORT=1025
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - docintern
+    healthcheck:
+      test: ["CMD-SHELL", "php-fpm-healthcheck || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  # ——————————————————————————————————————————————
+  # Nginx Web Server
+  # ——————————————————————————————————————————————
+  nginx:
+    build:
+      context: .
+      dockerfile: docker/nginx/Dockerfile
+    container_name: docintern-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - .:/var/www/html:ro
+    depends_on:
+      - app
+    networks:
+      - docintern
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # ——————————————————————————————————————————————
+  # Vite Dev Server (HMR)
+  # ——————————————————————————————————————————————
+  node:
+    build:
+      context: .
+      dockerfile: docker/node/Dockerfile
+    container_name: docintern-node
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    volumes:
+      - .:/var/www/html
+      - /var/www/html/node_modules # Prevent node_modules override from host
+    networks:
+      - docintern
+
+  # ——————————————————————————————————————————————
+  # MySQL 8.0
+  # ——————————————————————————————————————————————
+  mysql:
+    image: mysql:8.0
+    container_name: docintern-mysql
+    restart: unless-stopped
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootsecret}
+      MYSQL_DATABASE: ${DB_DATABASE:-docintern}
+      MYSQL_USER: ${DB_USERNAME:-docintern}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-secret}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - docintern
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "localhost",
+          "-u",
+          "root",
+          "-p${DB_ROOT_PASSWORD:-rootsecret}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    command: >
+      --default-authentication-plugin=mysql_native_password
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --innodb-buffer-pool-size=256M
+
+  # ——————————————————————————————————————————————
+  # Redis 7
+  # ——————————————————————————————————————————————
+  redis:
+    image: redis:7-alpine
+    container_name: docintern-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - docintern
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command: redis-server --appendonly yes --maxmemory 128mb --maxmemory-policy allkeys-lru
+
+  # ——————————————————————————————————————————————
+  # RabbitMQ 3.13 with Management UI
+  # ——————————————————————————————————————————————
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: docintern-rabbitmq
+    restart: unless-stopped
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-docintern}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-secret}
+      RABBITMQ_DEFAULT_VHOST: ${RABBITMQ_VHOST:-/docintern}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - docintern
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # ——————————————————————————————————————————————
+  # Mailpit (Local Email Testing)
+  # ——————————————————————————————————————————————
+  mailpit:
+    image: axllent/mailpit:v1.19
+    container_name: docintern-mailpit
+    restart: unless-stopped
+    ports:
+      - "8025:8025" # Web UI
+      - "1025:1025" # SMTP
+    networks:
+      - docintern
+
+networks:
+  docintern:
+    driver: bridge
+
+volumes:
+  mysql_data:
+    driver: local
+  redis_data:
+    driver: local
+  rabbitmq_data:
+    driver: local
