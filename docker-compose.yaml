@@ -15,7 +15,6 @@ services:
       - .:/var/www/html
       - /var/www/html/vendor # Prevent vendor override from host
     environment:
-      - APP_ENV=${APP_ENV:-local}
       - DB_HOST=mysql
       - DB_PORT=3306
       - REDIS_HOST=redis
