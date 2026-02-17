@@ -55,6 +55,10 @@ As the project grows, keeping development guidelines consistent and accessible b
 
 `boost:update` runs automatically on every `composer update`, keeping guidelines in sync with installed packages.
 
+## Output Format
+
+- Always present the PR description inside a markdown code block so it can be directly copy-pasted into GitHub.
+
 ## Principles
 
 1. **Lead with "why"** — Reviewers should understand the motivation before reading the diff
