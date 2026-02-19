@@ -99,8 +99,9 @@ const breadcrumbItems: BreadcrumbItem[] = [
                         :href="link.url"
                         class="rounded-md px-3 py-1 text-sm"
                         :class="link.active ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'"
-                        v-html="link.label"
-                    />
+                    >
+                        <span v-html="link.label" />
+                    </Link>
                     <span
                         v-else
                         class="px-3 py-1 text-sm text-muted-foreground/50"
