@@ -56,4 +56,14 @@ class UserFactory extends Factory
             'two_factor_confirmed_at' => now(),
         ]);
     }
+
+    /**
+     * Indicate that the user belongs to the given tenant.
+     */
+    public function forTenant(\App\Models\Tenant $tenant): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'tenant_id' => $tenant->id,
+        ]);
+    }
 }
