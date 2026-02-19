@@ -11,6 +11,15 @@ class Tenant extends BaseTenant
     /** @use HasFactory<\Database\Factories\TenantFactory> */
     use HasFactory;
 
+    public $incrementing = false;
+
+    protected $keyType = 'string';
+
+    public function getConnectionName(): string
+    {
+        return config('database.default');
+    }
+
     /**
      * @return list<string>
      */
