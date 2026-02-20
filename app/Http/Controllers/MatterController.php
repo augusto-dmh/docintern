@@ -17,6 +17,8 @@ class MatterController extends Controller
      */
     public function index(): Response
     {
+        $this->authorize('viewAny', Matter::class);
+
         return Inertia::render('matters/Index', [
             'matters' => Matter::query()
                 ->with('client')
@@ -30,6 +32,8 @@ class MatterController extends Controller
      */
     public function create(): Response
     {
+        $this->authorize('create', Matter::class);
+
         return Inertia::render('matters/Create', [
             'clients' => Client::query()->orderBy('name')->get(['id', 'name']),
         ]);
@@ -40,6 +44,8 @@ class MatterController extends Controller
      */
     public function store(StoreMatterRequest $request): RedirectResponse
     {
+        $this->authorize('create', Matter::class);
+
         Matter::create($request->validated());
 
         return to_route('matters.index');
@@ -50,6 +56,8 @@ class MatterController extends Controller
      */
     public function show(Matter $matter): Response
     {
+        $this->authorize('view', $matter);
+
         return Inertia::render('matters/Show', [
             'matter' => $matter->load('client', 'documents'),
         ]);
@@ -60,6 +68,8 @@ class MatterController extends Controller
      */
     public function edit(Matter $matter): Response
     {
+        $this->authorize('update', $matter);
+
         return Inertia::render('matters/Edit', [
             'matter' => $matter,
             'clients' => Client::query()->orderBy('name')->get(['id', 'name']),
@@ -71,6 +81,8 @@ class MatterController extends Controller
      */
     public function update(UpdateMatterRequest $request, Matter $matter): RedirectResponse
     {
+        $this->authorize('update', $matter);
+
         $matter->update($request->validated());
 
         return to_route('matters.show', $matter);
@@ -81,6 +93,8 @@ class MatterController extends Controller
      */
     public function destroy(Matter $matter): RedirectResponse
     {
+        $this->authorize('delete', $matter);
+
         $matter->delete();
 
         return to_route('matters.index');
