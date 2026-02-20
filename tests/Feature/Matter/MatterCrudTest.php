@@ -4,6 +4,13 @@ use App\Models\Client;
 use App\Models\Matter;
 use App\Models\Tenant;
 use App\Models\User;
+use Database\Seeders\RolesAndPermissionsSeeder;
+use Spatie\Permission\PermissionRegistrar;
+
+beforeEach(function () {
+    (new RolesAndPermissionsSeeder)->run();
+    app()[PermissionRegistrar::class]->forgetCachedPermissions();
+});
 
 afterEach(function () {
     tenancy()->end();
@@ -14,6 +21,9 @@ function createMatterCrudContext(): array
     $tenant = Tenant::factory()->create();
     $user = User::factory()->forTenant($tenant)->create();
     $client = Client::factory()->create(['tenant_id' => $tenant->id]);
+
+    setPermissionsTeamId($tenant->id);
+    $user->assignRole('tenant-admin');
 
     return [$tenant, $user, $client];
 }
