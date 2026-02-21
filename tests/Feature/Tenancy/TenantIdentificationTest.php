@@ -2,6 +2,13 @@
 
 use App\Models\Tenant;
 use App\Models\User;
+use Database\Seeders\RolesAndPermissionsSeeder;
+use Spatie\Permission\PermissionRegistrar;
+
+beforeEach(function () {
+    (new RolesAndPermissionsSeeder)->run();
+    app()[PermissionRegistrar::class]->forgetCachedPermissions();
+});
 
 afterEach(function () {
     tenancy()->end();
@@ -10,6 +17,9 @@ afterEach(function () {
 test('requests with valid tenant header initialize tenancy', function () {
     $tenant = Tenant::factory()->create();
     $user = User::factory()->forTenant($tenant)->create();
+
+    setPermissionsTeamId($tenant->id);
+    $user->assignRole('tenant-admin');
 
     $response = $this->actingAs($user)
         ->withHeaders(['X-Tenant-ID' => $tenant->id])
