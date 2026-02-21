@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, usePage } from '@inertiajs/vue3';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type Client, type Matter } from '@/types';
@@ -10,6 +10,8 @@ type Props = {
 };
 
 const props = defineProps<Props>();
+
+const canEditClients = usePage().props.auth.permissions.includes('edit clients');
 
 const breadcrumbItems: BreadcrumbItem[] = [
     {
@@ -29,7 +31,7 @@ const breadcrumbItems: BreadcrumbItem[] = [
         <div class="space-y-6">
             <div class="flex items-center justify-between">
                 <h1 class="text-2xl font-semibold">{{ client.name }}</h1>
-                <Button as-child variant="outline">
+                <Button v-if="canEditClients" as-child variant="outline">
                     <Link :href="ClientController.edit(client)">Edit</Link>
                 </Button>
             </div>

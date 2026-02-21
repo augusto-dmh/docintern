@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Form, Head } from '@inertiajs/vue3';
+import { Form, Head, usePage } from '@inertiajs/vue3';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,6 +13,8 @@ type Props = {
 };
 
 const props = defineProps<Props>();
+
+const canDeleteClients = usePage().props.auth.permissions.includes('delete clients');
 
 const breadcrumbItems: BreadcrumbItem[] = [
     {
@@ -116,7 +118,7 @@ const breadcrumbItems: BreadcrumbItem[] = [
                 </div>
             </Form>
 
-            <div class="border-t pt-6">
+            <div v-if="canDeleteClients" class="border-t pt-6">
                 <Form
                     v-bind="ClientController.destroy.form(client)"
                     v-slot="{ processing }"
