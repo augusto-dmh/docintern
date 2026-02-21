@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { Form, Head } from '@inertiajs/vue3';
+import { Form, Head, usePage } from '@inertiajs/vue3';
+import MatterController from '@/actions/App/Http/Controllers/MatterController';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type Matter } from '@/types';
-import MatterController from '@/actions/App/Http/Controllers/MatterController';
 
 type Props = {
     matter: Matter;
@@ -14,6 +14,9 @@ type Props = {
 };
 
 const props = defineProps<Props>();
+
+const canDeleteMatters =
+    usePage().props.auth.permissions.includes('delete matters');
 
 const breadcrumbItems: BreadcrumbItem[] = [
     {
@@ -49,10 +52,14 @@ const breadcrumbItems: BreadcrumbItem[] = [
                         name="client_id"
                         required
                         :value="matter.client_id"
-                        class="border-input bg-background ring-offset-background focus-visible:ring-ring flex h-9 w-full rounded-md border px-3 py-1 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                        class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
                     >
                         <option value="">Select a client</option>
-                        <option v-for="client in clients" :key="client.id" :value="client.id">
+                        <option
+                            v-for="client in clients"
+                            :key="client.id"
+                            :value="client.id"
+                        >
                             {{ client.name }}
                         </option>
                     </select>
@@ -77,7 +84,7 @@ const breadcrumbItems: BreadcrumbItem[] = [
                         id="description"
                         name="description"
                         rows="4"
-                        class="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex w-full rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                        class="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
                         placeholder="Matter description"
                         :value="matter.description ?? ''"
                     />
@@ -102,7 +109,7 @@ const breadcrumbItems: BreadcrumbItem[] = [
                         name="status"
                         required
                         :value="matter.status"
-                        class="border-input bg-background ring-offset-background focus-visible:ring-ring flex h-9 w-full rounded-md border px-3 py-1 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                        class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
                     >
                         <option value="open">Open</option>
                         <option value="closed">Closed</option>
@@ -120,14 +127,17 @@ const breadcrumbItems: BreadcrumbItem[] = [
                         leave-active-class="transition ease-in-out"
                         leave-to-class="opacity-0"
                     >
-                        <p v-show="recentlySuccessful" class="text-sm text-neutral-600">
+                        <p
+                            v-show="recentlySuccessful"
+                            class="text-sm text-neutral-600"
+                        >
                             Saved.
                         </p>
                     </Transition>
                 </div>
             </Form>
 
-            <div class="border-t pt-6">
+            <div v-if="canDeleteMatters" class="border-t pt-6">
                 <Form
                     v-bind="MatterController.destroy.form(matter)"
                     v-slot="{ processing }"
