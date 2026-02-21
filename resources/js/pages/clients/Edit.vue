@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { Form, Head, usePage } from '@inertiajs/vue3';
+import ClientController from '@/actions/App/Http/Controllers/ClientController';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type Client } from '@/types';
-import ClientController from '@/actions/App/Http/Controllers/ClientController';
 
 type Props = {
     client: Client;
@@ -14,7 +14,8 @@ type Props = {
 
 const props = defineProps<Props>();
 
-const canDeleteClients = usePage().props.auth.permissions.includes('delete clients');
+const canDeleteClients =
+    usePage().props.auth.permissions.includes('delete clients');
 
 const breadcrumbItems: BreadcrumbItem[] = [
     {
@@ -95,7 +96,7 @@ const breadcrumbItems: BreadcrumbItem[] = [
                         id="notes"
                         name="notes"
                         rows="4"
-                        class="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex w-full rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                        class="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
                         placeholder="Additional notes"
                         :value="client.notes ?? ''"
                     />
@@ -111,7 +112,10 @@ const breadcrumbItems: BreadcrumbItem[] = [
                         leave-active-class="transition ease-in-out"
                         leave-to-class="opacity-0"
                     >
-                        <p v-show="recentlySuccessful" class="text-sm text-neutral-600">
+                        <p
+                            v-show="recentlySuccessful"
+                            class="text-sm text-neutral-600"
+                        >
                             Saved.
                         </p>
                     </Transition>
