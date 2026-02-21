@@ -1,4 +1,4 @@
-.PHONY: up down build shell composer artisan migrate seed fresh test npm logs
+.PHONY: up down build shell composer artisan migrate seed fresh test npm logs s3-ls s3-shell
 
 up:
 	docker compose up -d
@@ -35,6 +35,12 @@ npm:
 
 logs:
 	docker compose logs -f $(filter-out $@,$(MAKECMDGOALS))
+
+s3-ls:
+	docker compose exec localstack sh -lc 'awslocal s3 ls && echo && awslocal s3 ls s3://$${AWS_BUCKET:-docintern-dev}'
+
+s3-shell:
+	docker compose exec localstack sh
 
 %:
 	@:
