@@ -1,15 +1,19 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, usePage } from '@inertiajs/vue3';
+import ClientController from '@/actions/App/Http/Controllers/ClientController';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type Client, type PaginatedData } from '@/types';
-import ClientController from '@/actions/App/Http/Controllers/ClientController';
 
 type Props = {
     clients: PaginatedData<Client>;
 };
 
 defineProps<Props>();
+
+const permissions = usePage().props.auth.permissions;
+const canCreateClients = permissions.includes('create clients');
+const canEditClients = permissions.includes('edit clients');
 
 const breadcrumbItems: BreadcrumbItem[] = [
     {
@@ -26,7 +30,7 @@ const breadcrumbItems: BreadcrumbItem[] = [
         <div class="space-y-6">
             <div class="flex items-center justify-between">
                 <h1 class="text-2xl font-semibold">Clients</h1>
-                <Button as-child>
+                <Button v-if="canCreateClients" as-child>
                     <Link :href="ClientController.create()">New Client</Link>
                 </Button>
             </div>
@@ -35,16 +39,29 @@ const breadcrumbItems: BreadcrumbItem[] = [
                 <table class="w-full text-sm">
                     <thead>
                         <tr class="border-b bg-muted/50">
-                            <th class="px-4 py-3 text-left font-medium">Name</th>
-                            <th class="px-4 py-3 text-left font-medium">Email</th>
-                            <th class="px-4 py-3 text-left font-medium">Company</th>
-                            <th class="px-4 py-3 text-left font-medium">Phone</th>
-                            <th class="px-4 py-3 text-right font-medium">Actions</th>
+                            <th class="px-4 py-3 text-left font-medium">
+                                Name
+                            </th>
+                            <th class="px-4 py-3 text-left font-medium">
+                                Email
+                            </th>
+                            <th class="px-4 py-3 text-left font-medium">
+                                Company
+                            </th>
+                            <th class="px-4 py-3 text-left font-medium">
+                                Phone
+                            </th>
+                            <th class="px-4 py-3 text-right font-medium">
+                                Actions
+                            </th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr v-if="clients.data.length === 0">
-                            <td colspan="5" class="px-4 py-8 text-center text-muted-foreground">
+                            <td
+                                colspan="5"
+                                class="px-4 py-8 text-center text-muted-foreground"
+                            >
                                 No clients found.
                             </td>
                         </tr>
@@ -70,7 +87,10 @@ const breadcrumbItems: BreadcrumbItem[] = [
                             <td class="px-4 py-3 text-muted-foreground">
                                 {{ client.phone ?? '—' }}
                             </td>
-                            <td class="px-4 py-3 text-right">
+                            <td
+                                v-if="canEditClients"
+                                class="px-4 py-3 text-right"
+                            >
                                 <Link
                                     :href="ClientController.edit(client)"
                                     class="text-sm text-muted-foreground hover:text-foreground"
@@ -83,13 +103,20 @@ const breadcrumbItems: BreadcrumbItem[] = [
                 </table>
             </div>
 
-            <div v-if="clients.last_page > 1" class="flex items-center justify-center gap-1">
+            <div
+                v-if="clients.last_page > 1"
+                class="flex items-center justify-center gap-1"
+            >
                 <template v-for="link in clients.links" :key="link.label">
                     <Link
                         v-if="link.url"
                         :href="link.url"
                         class="rounded-md px-3 py-1 text-sm"
-                        :class="link.active ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'"
+                        :class="
+                            link.active
+                                ? 'bg-primary text-primary-foreground'
+                                : 'text-muted-foreground hover:bg-muted'
+                        "
                     >
                         <span v-html="link.label" />
                     </Link>
