@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, usePage } from '@inertiajs/vue3';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type Matter, type PaginatedData } from '@/types';
@@ -10,6 +10,10 @@ type Props = {
 };
 
 defineProps<Props>();
+
+const permissions = usePage().props.auth.permissions;
+const canCreateMatters = permissions.includes('create matters');
+const canEditMatters = permissions.includes('edit matters');
 
 const breadcrumbItems: BreadcrumbItem[] = [
     {
@@ -26,7 +30,7 @@ const breadcrumbItems: BreadcrumbItem[] = [
         <div class="space-y-6">
             <div class="flex items-center justify-between">
                 <h1 class="text-2xl font-semibold">Matters</h1>
-                <Button as-child>
+                <Button v-if="canCreateMatters" as-child>
                     <Link :href="MatterController.create()">New Matter</Link>
                 </Button>
             </div>
@@ -79,7 +83,7 @@ const breadcrumbItems: BreadcrumbItem[] = [
                                     {{ matter.status.replace('_', ' ') }}
                                 </span>
                             </td>
-                            <td class="px-4 py-3 text-right">
+                            <td v-if="canEditMatters" class="px-4 py-3 text-right">
                                 <Link
                                     :href="MatterController.edit(matter)"
                                     class="text-sm text-muted-foreground hover:text-foreground"

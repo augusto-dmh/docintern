@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, usePage } from '@inertiajs/vue3';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type Client, type Document, type Matter } from '@/types';
@@ -11,6 +11,8 @@ type Props = {
 };
 
 const props = defineProps<Props>();
+
+const canEditMatters = usePage().props.auth.permissions.includes('edit matters');
 
 const breadcrumbItems: BreadcrumbItem[] = [
     {
@@ -42,7 +44,7 @@ const breadcrumbItems: BreadcrumbItem[] = [
                         {{ matter.status.replace('_', ' ') }}
                     </span>
                 </div>
-                <Button as-child variant="outline">
+                <Button v-if="canEditMatters" as-child variant="outline">
                     <Link :href="MatterController.edit(matter)">Edit</Link>
                 </Button>
             </div>

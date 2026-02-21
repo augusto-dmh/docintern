@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, usePage } from '@inertiajs/vue3';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type Client, type PaginatedData } from '@/types';
@@ -10,6 +10,10 @@ type Props = {
 };
 
 defineProps<Props>();
+
+const permissions = usePage().props.auth.permissions;
+const canCreateClients = permissions.includes('create clients');
+const canEditClients = permissions.includes('edit clients');
 
 const breadcrumbItems: BreadcrumbItem[] = [
     {
@@ -26,7 +30,7 @@ const breadcrumbItems: BreadcrumbItem[] = [
         <div class="space-y-6">
             <div class="flex items-center justify-between">
                 <h1 class="text-2xl font-semibold">Clients</h1>
-                <Button as-child>
+                <Button v-if="canCreateClients" as-child>
                     <Link :href="ClientController.create()">New Client</Link>
                 </Button>
             </div>
@@ -70,7 +74,7 @@ const breadcrumbItems: BreadcrumbItem[] = [
                             <td class="px-4 py-3 text-muted-foreground">
                                 {{ client.phone ?? '—' }}
                             </td>
-                            <td class="px-4 py-3 text-right">
+                            <td v-if="canEditClients" class="px-4 py-3 text-right">
                                 <Link
                                     :href="ClientController.edit(client)"
                                     class="text-sm text-muted-foreground hover:text-foreground"
