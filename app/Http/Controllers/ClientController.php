@@ -21,8 +21,10 @@ class ClientController extends Controller
 
         return Inertia::render('clients/Index', [
             'clients' => Client::query()
+                ->withCount('matters')
                 ->latest()
                 ->paginate(15),
+            'documentExperience' => DocumentExperienceGuardrails::inertiaPayload(),
         ]);
     }
 

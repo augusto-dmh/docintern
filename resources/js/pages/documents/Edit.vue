@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import { ref } from 'vue';
+import DocumentController from '@/actions/App/Http/Controllers/DocumentController';
+import MatterController from '@/actions/App/Http/Controllers/MatterController';
 import DocumentExperienceFrame from '@/components/documents/DocumentExperienceFrame.vue';
 import DocumentExperienceSurface from '@/components/documents/DocumentExperienceSurface.vue';
 import DocumentStatusBadge from '@/components/documents/DocumentStatusBadge.vue';
@@ -14,8 +16,6 @@ import {
     type Document,
     type DocumentExperienceGuardrails,
 } from '@/types';
-import DocumentController from '@/actions/App/Http/Controllers/DocumentController';
-import MatterController from '@/actions/App/Http/Controllers/MatterController';
 
 const props = defineProps<{
     document: Document;
@@ -131,7 +131,7 @@ function deleteDocument(): void {
                             v-model="form.title"
                             required
                             placeholder="Document title"
-                            class="border-[var(--doc-border)] bg-[hsl(38_50%_98%)]"
+                            class="border-[var(--doc-border)] bg-card"
                         />
                         <InputError :message="form.errors.title" />
                     </div>
@@ -140,7 +140,7 @@ function deleteDocument(): void {
                         <Button
                             type="submit"
                             :disabled="form.processing"
-                            class="bg-[var(--doc-seal)] text-white hover:bg-[hsl(9_72%_30%)]"
+                            class="bg-[var(--doc-seal)] text-white hover:bg-primary/90"
                         >
                             {{ form.processing ? 'Saving...' : 'Save Changes' }}
                         </Button>

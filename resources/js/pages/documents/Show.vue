@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { Head, Link, usePage } from '@inertiajs/vue3';
+import DocumentController from '@/actions/App/Http/Controllers/DocumentController';
+import MatterController from '@/actions/App/Http/Controllers/MatterController';
 import DocumentExperienceFrame from '@/components/documents/DocumentExperienceFrame.vue';
 import DocumentExperienceSurface from '@/components/documents/DocumentExperienceSurface.vue';
 import DocumentStatusBadge from '@/components/documents/DocumentStatusBadge.vue';
@@ -8,13 +10,13 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import {
     type BreadcrumbItem,
     type Document,
+    type DocumentActivity,
     type DocumentExperienceGuardrails,
 } from '@/types';
-import DocumentController from '@/actions/App/Http/Controllers/DocumentController';
-import MatterController from '@/actions/App/Http/Controllers/MatterController';
 
 const props = defineProps<{
     document: Document;
+    recentActivity: DocumentActivity[];
     documentExperience: DocumentExperienceGuardrails;
 }>();
 
@@ -39,6 +41,16 @@ function formatDate(value: string): string {
     }).format(new Date(value));
 }
 
+function formatDateTime(value: string): string {
+    return new Intl.DateTimeFormat('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+    }).format(new Date(value));
+}
+
 function formatFileSize(bytes: number): string {
     const sizeInMb = bytes / (1024 * 1024);
 
@@ -47,6 +59,26 @@ function formatFileSize(bytes: number): string {
     }
 
     return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+}
+
+function activityLabel(action: string): string {
+    if (action === 'uploaded') {
+        return 'Document uploaded';
+    }
+
+    if (action === 'viewed') {
+        return 'Document viewed';
+    }
+
+    if (action === 'downloaded') {
+        return 'Document downloaded';
+    }
+
+    if (action === 'deleted') {
+        return 'Document deleted';
+    }
+
+    return action.replaceAll('_', ' ');
 }
 </script>
 
@@ -69,17 +101,17 @@ function formatFileSize(bytes: number): string {
             <template #actions>
                 <Button
                     as-child
-                    class="bg-[var(--doc-seal)] text-white hover:bg-[hsl(9_72%_30%)]"
+                    class="bg-[var(--doc-seal)] text-white hover:bg-primary/90"
                 >
-                    <Link :href="DocumentController.download(document)"
-                        >Download</Link
-                    >
+                    <Link :href="DocumentController.download(document)">
+                        Download
+                    </Link>
                 </Button>
 
                 <Button v-if="canEditDocuments" as-child variant="outline">
-                    <Link :href="DocumentController.edit(document)"
-                        >Edit metadata</Link
-                    >
+                    <Link :href="DocumentController.edit(document)">
+                        Edit metadata
+                    </Link>
                 </Button>
             </template>
 
@@ -172,7 +204,74 @@ function formatFileSize(bytes: number): string {
                             {{ formatDate(document.created_at) }}
                         </dd>
                     </div>
+
+                    <div>
+                        <dt
+                            class="doc-subtle text-xs font-semibold tracking-[0.12em] uppercase"
+                        >
+                            Last updated
+                        </dt>
+                        <dd class="mt-1 text-sm">
+                            {{ formatDate(document.updated_at) }}
+                        </dd>
+                    </div>
+
+                    <div class="sm:col-span-2 lg:col-span-1">
+                        <dt
+                            class="doc-subtle text-xs font-semibold tracking-[0.12em] uppercase"
+                        >
+                            Storage key
+                        </dt>
+                        <dd class="mt-1 text-xs break-all">
+                            {{ document.file_path }}
+                        </dd>
+                    </div>
                 </dl>
+            </DocumentExperienceSurface>
+
+            <DocumentExperienceSurface
+                :document-experience="documentExperience"
+                :delay="2"
+                class="mt-6 p-6 sm:p-8"
+            >
+                <div
+                    class="mb-4 flex flex-wrap items-center justify-between gap-2"
+                >
+                    <h2 class="doc-title text-xl font-semibold">
+                        Activity timeline
+                    </h2>
+                    <span
+                        class="doc-subtle text-xs font-semibold tracking-[0.12em] uppercase"
+                    >
+                        {{ recentActivity.length }} events
+                    </span>
+                </div>
+
+                <ol class="space-y-3">
+                    <li
+                        v-for="activity in recentActivity"
+                        :key="activity.id"
+                        class="doc-grid-line rounded-xl border p-4"
+                    >
+                        <div
+                            class="flex flex-wrap items-center justify-between gap-2"
+                        >
+                            <p class="doc-title text-sm font-semibold">
+                                {{ activityLabel(activity.action) }}
+                            </p>
+                            <p class="doc-subtle text-xs">
+                                {{ formatDateTime(activity.created_at) }}
+                            </p>
+                        </div>
+
+                        <p class="doc-subtle mt-1 text-xs">
+                            {{ activity.user?.name ?? 'System' }}
+                            <span v-if="activity.ip_address">
+                                • {{ activity.ip_address }}
+                            </span>
+                        </p>
+                    </li>
+                </ol>
             </DocumentExperienceSurface>
         </DocumentExperienceFrame>
     </AppLayout>

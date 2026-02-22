@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Form, Head, usePage } from '@inertiajs/vue3';
+import { Form, Head, Link, usePage } from '@inertiajs/vue3';
 import ClientController from '@/actions/App/Http/Controllers/ClientController';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
@@ -36,102 +36,130 @@ const breadcrumbItems: BreadcrumbItem[] = [
     <AppLayout :breadcrumbs="breadcrumbItems">
         <Head :title="`Edit ${client.name}`" />
 
-        <div class="mx-auto max-w-2xl space-y-6">
-            <h1 class="text-2xl font-semibold">Edit Client</h1>
+        <section class="workspace-hero p-6 sm:p-8">
+            <p
+                class="doc-seal text-xs font-semibold tracking-[0.16em] uppercase"
+            >
+                Relationship maintenance
+            </p>
+            <h1 class="doc-title mt-2 text-3xl font-semibold">Edit client</h1>
+            <p class="doc-subtle mt-3 text-sm">
+                Keep records current to reduce routing errors in matter and
+                document flows.
+            </p>
+        </section>
 
+        <section
+            class="workspace-panel workspace-fade-up workspace-delay-1 mt-6 p-6 sm:p-8"
+        >
             <Form
                 v-bind="ClientController.update.form(client)"
-                class="space-y-6"
+                class="grid gap-6"
                 v-slot="{ errors, processing, recentlySuccessful }"
             >
                 <div class="grid gap-2">
-                    <Label for="name">Name</Label>
+                    <Label for="name" class="workspace-label">Name</Label>
                     <Input
                         id="name"
                         name="name"
                         :default-value="client.name"
                         required
+                        class="workspace-input"
                         placeholder="Client name"
                     />
                     <InputError :message="errors.name" />
                 </div>
 
-                <div class="grid gap-2">
-                    <Label for="email">Email</Label>
-                    <Input
-                        id="email"
-                        type="email"
-                        name="email"
-                        :default-value="client.email ?? ''"
-                        placeholder="Email address"
-                    />
-                    <InputError :message="errors.email" />
+                <div class="grid gap-2 sm:grid-cols-2 sm:gap-4">
+                    <div class="grid gap-2">
+                        <Label for="email" class="workspace-label">Email</Label>
+                        <Input
+                            id="email"
+                            type="email"
+                            name="email"
+                            :default-value="client.email ?? ''"
+                            class="workspace-input"
+                            placeholder="Email address"
+                        />
+                        <InputError :message="errors.email" />
+                    </div>
+
+                    <div class="grid gap-2">
+                        <Label for="phone" class="workspace-label">Phone</Label>
+                        <Input
+                            id="phone"
+                            name="phone"
+                            :default-value="client.phone ?? ''"
+                            class="workspace-input"
+                            placeholder="Phone number"
+                        />
+                        <InputError :message="errors.phone" />
+                    </div>
                 </div>
 
                 <div class="grid gap-2">
-                    <Label for="phone">Phone</Label>
-                    <Input
-                        id="phone"
-                        name="phone"
-                        :default-value="client.phone ?? ''"
-                        placeholder="Phone number"
-                    />
-                    <InputError :message="errors.phone" />
-                </div>
-
-                <div class="grid gap-2">
-                    <Label for="company">Company</Label>
+                    <Label for="company" class="workspace-label">Company</Label>
                     <Input
                         id="company"
                         name="company"
                         :default-value="client.company ?? ''"
+                        class="workspace-input"
                         placeholder="Company name"
                     />
                     <InputError :message="errors.company" />
                 </div>
 
                 <div class="grid gap-2">
-                    <Label for="notes">Notes</Label>
+                    <Label for="notes" class="workspace-label">Notes</Label>
                     <textarea
                         id="notes"
                         name="notes"
                         rows="4"
-                        class="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                        class="workspace-textarea"
                         placeholder="Additional notes"
                         :value="client.notes ?? ''"
                     />
                     <InputError :message="errors.notes" />
                 </div>
 
-                <div class="flex items-center gap-4">
-                    <Button :disabled="processing">Save Changes</Button>
-
-                    <Transition
-                        enter-active-class="transition ease-in-out"
-                        enter-from-class="opacity-0"
-                        leave-active-class="transition ease-in-out"
-                        leave-to-class="opacity-0"
+                <div class="flex flex-wrap items-center gap-3">
+                    <Button
+                        :disabled="processing"
+                        class="workspace-primary-button"
                     >
-                        <p
-                            v-show="recentlySuccessful"
-                            class="text-sm text-neutral-600"
+                        Save changes
+                    </Button>
+                    <Button as-child variant="outline">
+                        <Link :href="ClientController.show(client)"
+                            >Cancel</Link
                         >
-                            Saved.
-                        </p>
-                    </Transition>
+                    </Button>
+                    <p v-if="recentlySuccessful" class="doc-subtle text-sm">
+                        Saved.
+                    </p>
                 </div>
             </Form>
+        </section>
 
-            <div v-if="canDeleteClients" class="border-t pt-6">
-                <Form
-                    v-bind="ClientController.destroy.form(client)"
-                    v-slot="{ processing }"
-                >
-                    <Button variant="destructive" :disabled="processing">
-                        Delete Client
-                    </Button>
-                </Form>
-            </div>
-        </div>
+        <section
+            v-if="canDeleteClients"
+            class="workspace-panel workspace-fade-up workspace-delay-2 mt-6 border-[hsl(3_68%_50%/0.35)] p-6"
+        >
+            <h2 class="doc-title text-xl font-semibold text-destructive">
+                Remove client
+            </h2>
+            <p class="doc-subtle mt-2 text-sm">
+                This action permanently deletes the client record.
+            </p>
+            <Form
+                v-bind="ClientController.destroy.form(client)"
+                v-slot="{ processing }"
+                class="mt-4"
+            >
+                <Button variant="destructive" :disabled="processing">
+                    Delete client
+                </Button>
+            </Form>
+        </section>
     </AppLayout>
 </template>
