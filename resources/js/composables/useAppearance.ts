@@ -34,7 +34,8 @@ export function initializeTheme(): void {
 }
 
 export function useAppearance(): UseAppearanceReturn {
-    function updateAppearance(_value: Appearance): void {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    function updateAppearance(value: Appearance): void {
         appearance.value = 'light';
         initializeTheme();
     }
