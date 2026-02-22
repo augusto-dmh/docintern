@@ -88,6 +88,75 @@ services:
       - docintern
 
   # ——————————————————————————————————————————————
+  # Queue Workers (Supervisor-managed consumers)
+  # ——————————————————————————————————————————————
+  worker:
+    build:
+      context: .
+      dockerfile: docker/workers/Dockerfile
+      args:
+        USER_ID: ${DOCKER_USER_ID:-1000}
+        GROUP_ID: ${DOCKER_GROUP_ID:-1000}
+    container_name: docintern-worker
+    restart: unless-stopped
+    volumes:
+      - .:/var/www/html
+      - /var/www/html/vendor # Prevent vendor override from host
+    environment:
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+      - AWS_DEFAULT_REGION=us-east-1
+      - AWS_BUCKET=docintern-dev
+      - AWS_ENDPOINT=http://localstack:4566
+      - AWS_USE_PATH_STYLE_ENDPOINT=true
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      localstack:
+        condition: service_healthy
+    networks:
+      - docintern
+
+  # ——————————————————————————————————————————————
+  # Laravel Task Scheduler
+  # ——————————————————————————————————————————————
+  scheduler:
+    build:
+      context: .
+      dockerfile: docker/scheduler/Dockerfile
+    container_name: docintern-scheduler
+    restart: unless-stopped
+    volumes:
+      - .:/var/www/html
+      - /var/www/html/vendor # Prevent vendor override from host
+    environment:
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - docintern
+
+  # ——————————————————————————————————————————————
   # MySQL 8.0
   # ——————————————————————————————————————————————
   mysql:
@@ -161,8 +230,10 @@ services:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-docintern}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-secret}
       RABBITMQ_DEFAULT_VHOST: ${RABBITMQ_VHOST:-/docintern}
+      RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS: -rabbitmq_management load_definitions "/etc/rabbitmq/definitions.json"
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
+      - ./docker/rabbitmq/definitions.json:/etc/rabbitmq/definitions.json:ro
     networks:
       - docintern
     healthcheck:
