@@ -6,6 +6,7 @@ use App\Http\Requests\Matters\StoreMatterRequest;
 use App\Http\Requests\Matters\UpdateMatterRequest;
 use App\Models\Client;
 use App\Models\Matter;
+use App\Support\DocumentExperienceGuardrails;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -59,7 +60,13 @@ class MatterController extends Controller
         $this->authorize('view', $matter);
 
         return Inertia::render('matters/Show', [
-            'matter' => $matter->load('client', 'documents'),
+            'matter' => $matter->load([
+                'client',
+                'documents' => fn ($query) => $query
+                    ->with('uploader')
+                    ->latest(),
+            ]),
+            'documentExperience' => DocumentExperienceGuardrails::inertiaPayload(),
         ]);
     }
 

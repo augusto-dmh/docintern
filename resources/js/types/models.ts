@@ -22,6 +22,7 @@ export type Matter = {
     status: MatterStatus;
     created_at: string;
     updated_at: string;
+    documents_count?: number;
     client?: Client;
 };
 
