@@ -40,7 +40,7 @@ onMounted(async () => {
 
 <template>
     <Card
-        class="workspace-panel w-full border-[var(--doc-border)]/75 bg-[hsl(38_58%_97%)] shadow-none"
+        class="workspace-panel w-full border-[var(--doc-border)]/75 bg-card shadow-none"
     >
         <CardHeader>
             <CardTitle class="doc-title flex gap-3 text-xl font-semibold">
@@ -101,7 +101,7 @@ onMounted(async () => {
                 <div v-else class="mt-3 space-y-3">
                     <div
                         ref="recoveryCodeSectionRef"
-                        class="grid gap-1 rounded-xl border border-[var(--doc-border)] bg-[hsl(36_46%_94%)] p-4 font-mono text-sm"
+                        class="grid gap-1 rounded-xl border border-[var(--doc-border)] bg-[var(--doc-paper-strong)] p-4 font-mono text-sm"
                     >
                         <div v-if="!recoveryCodesList.length" class="space-y-2">
                             <div

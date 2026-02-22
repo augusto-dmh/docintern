@@ -131,7 +131,7 @@ function deleteDocument(): void {
                             v-model="form.title"
                             required
                             placeholder="Document title"
-                            class="border-[var(--doc-border)] bg-[hsl(38_50%_98%)]"
+                            class="border-[var(--doc-border)] bg-card"
                         />
                         <InputError :message="form.errors.title" />
                     </div>
@@ -140,7 +140,7 @@ function deleteDocument(): void {
                         <Button
                             type="submit"
                             :disabled="form.processing"
-                            class="bg-[var(--doc-seal)] text-white hover:bg-[hsl(9_72%_30%)]"
+                            class="bg-[var(--doc-seal)] text-white hover:bg-primary/90"
                         >
                             {{ form.processing ? 'Saving...' : 'Save Changes' }}
                         </Button>

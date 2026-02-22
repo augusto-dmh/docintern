@@ -46,7 +46,7 @@ const passwordInput = useTemplateRef('passwordInput');
                     </Button>
                 </DialogTrigger>
                 <DialogContent
-                    class="rounded-2xl border-[var(--doc-border)] bg-[hsl(37_58%_97%)]"
+                    class="rounded-2xl border-[var(--doc-border)] bg-card"
                 >
                     <Form
                         v-bind="ProfileController.destroy.form()"

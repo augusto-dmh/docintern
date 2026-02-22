@@ -34,8 +34,7 @@ export function initializeTheme(): void {
 }
 
 export function useAppearance(): UseAppearanceReturn {
-    function updateAppearance(value: Appearance): void {
-        void value;
+    function updateAppearance(_value: Appearance): void {
         appearance.value = 'light';
         initializeTheme();
     }

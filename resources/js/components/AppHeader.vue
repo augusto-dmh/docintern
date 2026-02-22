@@ -2,6 +2,7 @@
 import { Link, usePage } from '@inertiajs/vue3';
 import { LayoutGrid, Menu } from 'lucide-vue-next';
 import AppLogo from '@/components/AppLogo.vue';
+import { getInitials } from '@/composables/useInitials';
 import Breadcrumbs from '@/components/Breadcrumbs.vue';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -94,15 +95,9 @@ const page = usePage();
                                         :alt="page.props.auth.user.name"
                                     />
                                     <AvatarFallback
-                                        class="rounded-lg bg-[hsl(38_35%_87%)] font-semibold text-[hsl(24_31%_20%)]"
+                                        class="rounded-lg bg-secondary font-semibold text-secondary-foreground"
                                     >
-                                        {{
-                                            page.props.auth.user.name
-                                                .split(' ')
-                                                .map((piece) => piece[0])
-                                                .slice(0, 2)
-                                                .join('')
-                                        }}
+                                        {{ getInitials(page.props.auth.user.name) }}
                                     </AvatarFallback>
                                 </Avatar>
                             </Button>

@@ -29,7 +29,7 @@ const currentTitle = computed(() => {
     <header
         class="workspace-topbar flex min-h-16 shrink-0 items-center gap-3 border-b border-[var(--doc-border)]/65 px-4 py-3 transition-[width,height] ease-linear md:px-6"
     >
-        <SidebarTrigger class="-ml-1 rounded-lg hover:bg-[hsl(38_48%_91%)]" />
+        <SidebarTrigger class="-ml-1 rounded-lg hover:bg-accent" />
 
         <div class="min-w-0 flex-1">
             <p class="doc-title truncate text-lg font-semibold">

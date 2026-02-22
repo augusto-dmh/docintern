@@ -108,14 +108,14 @@ watch(
 <template>
     <Dialog :open="isOpen" @update:open="isOpen = $event">
         <DialogContent
-            class="rounded-2xl border-[var(--doc-border)] bg-[hsl(37_58%_97%)] sm:max-w-md"
+            class="rounded-2xl border-[var(--doc-border)] bg-card sm:max-w-md"
         >
             <DialogHeader class="flex items-center justify-center">
                 <div
-                    class="mb-3 w-auto rounded-full border border-[var(--doc-border)] bg-[hsl(38_52%_96%)] p-0.5 shadow-sm"
+                    class="mb-3 w-auto rounded-full border border-[var(--doc-border)] bg-[var(--doc-paper)] p-0.5 shadow-sm"
                 >
                     <div
-                        class="relative overflow-hidden rounded-full border border-[var(--doc-border)] bg-[hsl(36_46%_94%)] p-2.5"
+                        class="relative overflow-hidden rounded-full border border-[var(--doc-border)] bg-[var(--doc-paper-strong)] p-2.5"
                     >
                         <div
                             class="absolute inset-0 grid grid-cols-5 opacity-50"

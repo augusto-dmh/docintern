@@ -27,7 +27,7 @@ const { isMobile, state } = useSidebar();
                 <DropdownMenuTrigger as-child>
                     <SidebarMenuButton
                         size="lg"
-                        class="rounded-xl border border-transparent px-2 py-2 data-[state=open]:border-[var(--doc-border)] data-[state=open]:bg-[hsl(38_46%_93%)]"
+                        class="rounded-xl border border-transparent px-2 py-2 data-[state=open]:border-[var(--doc-border)] data-[state=open]:bg-muted"
                         data-test="sidebar-menu-button"
                     >
                         <UserInfo :user="user" />
@@ -37,7 +37,7 @@ const { isMobile, state } = useSidebar();
                     </SidebarMenuButton>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
-                    class="w-(--reka-dropdown-menu-trigger-width) min-w-56 rounded-xl border-[var(--doc-border)] bg-[hsl(37_54%_97%)] p-1.5"
+                    class="w-(--reka-dropdown-menu-trigger-width) min-w-56 rounded-xl border-[var(--doc-border)] bg-card p-1.5"
                     :side="
                         isMobile
                             ? 'bottom'
