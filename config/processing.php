@@ -13,6 +13,7 @@ if ($retryBackoff === []) {
 }
 
 return [
+    'queue_connection' => env('PROCESSING_QUEUE_CONNECTION', env('QUEUE_CONNECTION', 'sync')),
     'ocr_provider' => env('PROCESSING_OCR_PROVIDER', 'simulated'),
     'classification_provider' => env('PROCESSING_CLASSIFICATION_PROVIDER', 'simulated'),
     'retry_attempts' => (int) env('PROCESSING_RETRY_ATTEMPTS', 3),

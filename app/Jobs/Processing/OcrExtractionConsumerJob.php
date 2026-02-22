@@ -26,7 +26,7 @@ class OcrExtractionConsumerJob implements ShouldQueue
      */
     public function __construct(public array $payload)
     {
-        $this->onConnection('rabbitmq');
+        $this->onConnection($this->resolveQueueConnection());
         $this->tries = $this->resolveRetryAttempts();
     }
 
@@ -149,7 +149,7 @@ class OcrExtractionConsumerJob implements ShouldQueue
         ]);
 
         ClassificationConsumerJob::dispatch($classificationPayload)
-            ->onConnection('rabbitmq')
+            ->onConnection($this->resolveQueueConnection())
             ->onQueue($classificationRoutingResolver->resolveQueueForType($classificationHint));
 
         $processingEventRecorder->record(
@@ -172,7 +172,7 @@ class OcrExtractionConsumerJob implements ShouldQueue
             payload: $this->deadLetterPayload($exception),
             terminalStatus: 'extraction_failed',
         )
-            ->onConnection('rabbitmq')
+            ->onConnection($this->resolveQueueConnection())
             ->onQueue('queue.dead-letters');
     }
 
@@ -203,7 +203,7 @@ class OcrExtractionConsumerJob implements ShouldQueue
 
         self::dispatch($payload)
             ->delay(now()->addSeconds($this->resolveScanWaitDelaySeconds()))
-            ->onConnection('rabbitmq')
+            ->onConnection($this->resolveQueueConnection())
             ->onQueue('queue.ocr-extraction');
     }
 
@@ -212,6 +212,15 @@ class OcrExtractionConsumerJob implements ShouldQueue
         $configuredAttempts = (int) config('processing.retry_attempts', 3);
 
         return $configuredAttempts > 0 ? $configuredAttempts : 3;
+    }
+
+    protected function resolveQueueConnection(): string
+    {
+        $configuredConnection = config('processing.queue_connection', config('queue.default', 'sync'));
+
+        return is_string($configuredConnection) && $configuredConnection !== ''
+            ? $configuredConnection
+            : 'sync';
     }
 
     /**

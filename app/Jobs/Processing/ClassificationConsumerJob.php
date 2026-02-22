@@ -27,7 +27,7 @@ class ClassificationConsumerJob implements ShouldQueue
      */
     public function __construct(public array $payload)
     {
-        $this->onConnection('rabbitmq');
+        $this->onConnection($this->resolveQueueConnection());
         $this->tries = $this->resolveRetryAttempts();
     }
 
@@ -162,7 +162,7 @@ class ClassificationConsumerJob implements ShouldQueue
             payload: $this->deadLetterPayload($exception),
             terminalStatus: 'classification_failed',
         )
-            ->onConnection('rabbitmq')
+            ->onConnection($this->resolveQueueConnection())
             ->onQueue('queue.dead-letters');
     }
 
@@ -193,7 +193,7 @@ class ClassificationConsumerJob implements ShouldQueue
 
         self::dispatch($payload)
             ->delay(now()->addSeconds($this->resolveScanWaitDelaySeconds()))
-            ->onConnection('rabbitmq')
+            ->onConnection($this->resolveQueueConnection())
             ->onQueue('queue.classify.general');
     }
 
@@ -202,6 +202,15 @@ class ClassificationConsumerJob implements ShouldQueue
         $configuredAttempts = (int) config('processing.retry_attempts', 3);
 
         return $configuredAttempts > 0 ? $configuredAttempts : 3;
+    }
+
+    protected function resolveQueueConnection(): string
+    {
+        $configuredConnection = config('processing.queue_connection', config('queue.default', 'sync'));
+
+        return is_string($configuredConnection) && $configuredConnection !== ''
+            ? $configuredConnection
+            : 'sync';
     }
 
     /**
