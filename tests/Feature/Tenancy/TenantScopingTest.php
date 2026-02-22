@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Client;
+use App\Models\Document;
 use App\Models\Matter;
 use App\Models\Tenant;
 use App\Models\User;
@@ -76,6 +77,29 @@ test('tenant user cannot access other tenant matter via http', function () {
     $response = $this->actingAs($userA)
         ->withHeaders(['X-Tenant-ID' => $tenantA->id])
         ->get(route('matters.show', $matterB));
+
+    $response->assertNotFound();
+});
+
+test('tenant user cannot access other tenant document via http', function () {
+    $tenantA = Tenant::factory()->create();
+    $tenantB = Tenant::factory()->create();
+    $userA = User::factory()->forTenant($tenantA)->create();
+    $clientB = Client::factory()->create(['tenant_id' => $tenantB->id]);
+    $matterB = Matter::factory()->create([
+        'tenant_id' => $tenantB->id,
+        'client_id' => $clientB->id,
+    ]);
+    $documentB = Document::factory()->create([
+        'tenant_id' => $tenantB->id,
+        'matter_id' => $matterB->id,
+    ]);
+
+    tenancy()->initialize($tenantA);
+
+    $response = $this->actingAs($userA)
+        ->withHeaders(['X-Tenant-ID' => $tenantA->id])
+        ->get(route('documents.show', $documentB));
 
     $response->assertNotFound();
 });
