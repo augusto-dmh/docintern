@@ -1,17 +1,19 @@
 <script setup lang="ts">
 import { Head, Link, usePage } from '@inertiajs/vue3';
-import DocumentController from '@/actions/App/Http/Controllers/DocumentController';
-import MatterController from '@/actions/App/Http/Controllers/MatterController';
+import DocumentEmptyState from '@/components/documents/DocumentEmptyState.vue';
 import DocumentExperienceFrame from '@/components/documents/DocumentExperienceFrame.vue';
 import DocumentExperienceSurface from '@/components/documents/DocumentExperienceSurface.vue';
+import DocumentStatusBadge from '@/components/documents/DocumentStatusBadge.vue';
+import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { documentStatusToneClass } from '@/lib/document-experience';
 import {
     type BreadcrumbItem,
     type Document,
     type DocumentExperienceGuardrails,
     type PaginatedData,
 } from '@/types';
+import DocumentController from '@/actions/App/Http/Controllers/DocumentController';
+import MatterController from '@/actions/App/Http/Controllers/MatterController';
 
 defineProps<{
     documents: PaginatedData<Document>;
@@ -45,10 +47,6 @@ function formatFileSize(bytes: number): string {
 
     return `${Math.max(1, Math.round(bytes / 1024))} KB`;
 }
-
-function statusClass(status: Document['status']): string {
-    return documentStatusToneClass(status);
-}
 </script>
 
 <template>
@@ -61,12 +59,84 @@ function statusClass(status: Document['status']): string {
             title="Document ledger"
             description="Searchable matter documents with immutable storage and traceable activity."
         >
+            <DocumentEmptyState
+                v-if="documents.data.length === 0"
+                :document-experience="documentExperience"
+                title="No documents archived yet"
+                description="Upload the first file from a matter workspace to start building this tenant's ledger."
+                class="doc-fade-up doc-delay-1 mt-6"
+            >
+                <template #actions>
+                    <Button as-child variant="outline">
+                        <Link :href="MatterController.index()">
+                            Open matters
+                        </Link>
+                    </Button>
+                </template>
+            </DocumentEmptyState>
+
             <DocumentExperienceSurface
+                v-else
                 :document-experience="documentExperience"
                 :delay="1"
                 class="mt-6 overflow-hidden"
             >
-                <div class="overflow-x-auto">
+                <div class="grid gap-3 p-4 sm:p-5 md:hidden">
+                    <article
+                        v-for="document in documents.data"
+                        :key="`mobile-${document.id}`"
+                        class="doc-grid-line rounded-xl border p-4"
+                    >
+                        <div class="flex items-start justify-between gap-3">
+                            <Link
+                                :href="DocumentController.show(document)"
+                                class="doc-title text-base font-semibold hover:underline"
+                            >
+                                {{ document.title }}
+                            </Link>
+                            <DocumentStatusBadge :status="document.status" />
+                        </div>
+
+                        <p class="doc-subtle mt-2 text-xs">
+                            {{ document.file_name }} •
+                            {{ formatFileSize(document.file_size) }}
+                        </p>
+
+                        <p class="doc-subtle mt-1 text-xs">
+                            Matter:
+                            <Link
+                                v-if="document.matter"
+                                :href="MatterController.show(document.matter)"
+                                class="hover:underline"
+                            >
+                                {{ document.matter.title }}
+                            </Link>
+                            <span v-else>—</span>
+                        </p>
+
+                        <p class="doc-subtle mt-1 text-xs">
+                            Created {{ formatDate(document.created_at) }}
+                        </p>
+
+                        <div class="mt-4 flex items-center gap-3">
+                            <Link
+                                :href="DocumentController.download(document)"
+                                class="doc-seal text-xs font-medium tracking-[0.12em] uppercase hover:underline"
+                            >
+                                Download
+                            </Link>
+                            <Link
+                                v-if="canEditDocuments"
+                                :href="DocumentController.edit(document)"
+                                class="doc-subtle text-xs font-medium tracking-[0.12em] uppercase hover:underline"
+                            >
+                                Edit
+                            </Link>
+                        </div>
+                    </article>
+                </div>
+
+                <div class="hidden overflow-x-auto md:block">
                     <table class="min-w-full text-sm">
                         <thead>
                             <tr
@@ -110,15 +180,6 @@ function statusClass(status: Document['status']): string {
                             </tr>
                         </thead>
                         <tbody>
-                            <tr v-if="documents.data.length === 0">
-                                <td
-                                    colspan="7"
-                                    class="doc-subtle px-4 py-10 text-center"
-                                >
-                                    No documents found for this tenant.
-                                </td>
-                            </tr>
-
                             <tr
                                 v-for="document in documents.data"
                                 :key="document.id"
@@ -155,14 +216,9 @@ function statusClass(status: Document['status']): string {
                                     <span v-else class="doc-subtle">—</span>
                                 </td>
                                 <td class="px-4 py-3">
-                                    <span
-                                        class="inline-flex rounded-full px-2.5 py-1 text-xs font-medium"
-                                        :class="statusClass(document.status)"
-                                    >
-                                        {{
-                                            document.status.replaceAll('_', ' ')
-                                        }}
-                                    </span>
+                                    <DocumentStatusBadge
+                                        :status="document.status"
+                                    />
                                 </td>
                                 <td class="doc-subtle px-4 py-3">
                                     {{ document.uploader?.name ?? 'System' }}

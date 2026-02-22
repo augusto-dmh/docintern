@@ -81,7 +81,7 @@ class DocumentController extends Controller
         $this->authorize('update', $document);
 
         return Inertia::render('documents/Edit', [
-            'document' => $document,
+            'document' => $document->load('matter'),
             'documentExperience' => DocumentExperienceGuardrails::inertiaPayload(),
         ]);
     }
