@@ -99,6 +99,19 @@ npx vite build   # or: make npm run build
 
 All five steps are mandatory. Do not push if any step fails.
 
+### Responsibility Split (Enforced)
+
+- The agent is responsible for all git and PR handling:
+  - creating and switching branches
+  - committing in logical units
+  - pushing the branch to `origin`
+  - creating/updating the PR on GitHub (`gh pr create`, etc.)
+- The user is responsible only for manual review decisions:
+  - requesting changes
+  - approving the PR
+  - merging/closing the PR
+- Do not stop at "ready to push" or "open PR manually" unless the user explicitly asks to do those steps themselves.
+
 Creating a PR:
 
 ```bash
