@@ -55,11 +55,8 @@ class DocumentController extends Controller
             $file,
             $matter,
             $user,
+            $request->validated('title'),
         );
-
-        $document->update([
-            'title' => $request->validated('title'),
-        ]);
 
         return to_route('documents.show', $document);
     }
