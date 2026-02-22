@@ -19,7 +19,8 @@ test('document factory creates a valid document', function () {
 
     expect($document->tenant_id)->toBe($tenant->id)
         ->and($document->matter_id)->toBe($matter->id)
-        ->and($document->status)->toBe('uploaded');
+        ->and($document->status)->toBe('uploaded')
+        ->and($document->processing_trace_id)->toBeNull();
 });
 
 test('document belongs to a matter', function () {
