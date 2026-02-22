@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\Clients\StoreClientRequest;
 use App\Http\Requests\Clients\UpdateClientRequest;
 use App\Models\Client;
+use App\Support\DocumentExperienceGuardrails;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -55,7 +56,12 @@ class ClientController extends Controller
         $this->authorize('view', $client);
 
         return Inertia::render('clients/Show', [
-            'client' => $client->load('matters'),
+            'client' => $client->load([
+                'matters' => fn ($query) => $query
+                    ->withCount('documents')
+                    ->latest(),
+            ]),
+            'documentExperience' => DocumentExperienceGuardrails::inertiaPayload(),
         ]);
     }
 
