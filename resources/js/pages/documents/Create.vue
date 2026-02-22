@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
-import DocumentController from '@/actions/App/Http/Controllers/DocumentController';
-import MatterController from '@/actions/App/Http/Controllers/MatterController';
+import DocumentEmptyState from '@/components/documents/DocumentEmptyState.vue';
 import DocumentExperienceFrame from '@/components/documents/DocumentExperienceFrame.vue';
 import DocumentExperienceSurface from '@/components/documents/DocumentExperienceSurface.vue';
 import InputError from '@/components/InputError.vue';
@@ -17,6 +16,8 @@ import {
     type DocumentExperienceGuardrails,
     type Matter,
 } from '@/types';
+import DocumentController from '@/actions/App/Http/Controllers/DocumentController';
+import MatterController from '@/actions/App/Http/Controllers/MatterController';
 
 const props = defineProps<{
     matter: Matter;
@@ -58,6 +59,8 @@ const uploadItems = computed(() => {
         },
     ];
 });
+
+const hasValidationErrors = computed(() => Object.keys(form.errors).length > 0);
 
 const breadcrumbItems: BreadcrumbItem[] = [
     {
@@ -109,12 +112,23 @@ function submit(): void {
                 private S3 storage and audit tracking.
             </template>
 
+            <DocumentEmptyState
+                v-if="hasValidationErrors"
+                :document-experience="documentExperience"
+                title="Upload needs attention"
+                description="Resolve the highlighted fields before submitting this file to the archive."
+                class="doc-fade-up doc-delay-1 mt-6"
+            />
+
             <DocumentExperienceSurface
                 :document-experience="documentExperience"
                 :delay="1"
                 class="mt-6 p-6 sm:p-8"
             >
-                <form class="space-y-6" @submit.prevent="submit">
+                <form
+                    class="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]"
+                    @submit.prevent="submit"
+                >
                     <div class="grid gap-2">
                         <Label
                             for="title"
@@ -134,45 +148,64 @@ function submit(): void {
                         <InputError :message="form.errors.title" />
                     </div>
 
-                    <div class="grid gap-2">
-                        <Label class="doc-title text-sm font-semibold"
-                            >File</Label
-                        >
-                        <UploadDropzone
-                            :document-experience="documentExperience"
-                            :disabled="form.processing"
-                            :server-error="form.errors.file"
-                            @file-selected="onFileSelected"
-                            @file-cleared="onFileCleared"
-                        />
-                        <UploadProgressTracker
-                            :document-experience="documentExperience"
-                            :items="uploadItems"
-                        />
-                    </div>
-
-                    <div class="flex flex-wrap items-center gap-3">
-                        <Button
-                            type="submit"
-                            :disabled="
-                                form.processing ||
-                                !canCreateDocuments ||
-                                !form.file
-                            "
-                            class="bg-[var(--doc-seal)] text-white hover:bg-[hsl(9_72%_30%)]"
-                        >
-                            {{
-                                form.processing
-                                    ? 'Uploading...'
-                                    : 'Upload Document'
-                            }}
-                        </Button>
-
-                        <Button as-child type="button" variant="outline">
-                            <Link :href="DocumentController.index()"
-                                >Back to documents</Link
+                    <div class="space-y-6">
+                        <div class="grid gap-2">
+                            <Label class="doc-title text-sm font-semibold"
+                                >File</Label
                             >
-                        </Button>
+                            <UploadDropzone
+                                :document-experience="documentExperience"
+                                :disabled="form.processing"
+                                :server-error="form.errors.file"
+                                @file-selected="onFileSelected"
+                                @file-cleared="onFileCleared"
+                            />
+                            <UploadProgressTracker
+                                :document-experience="documentExperience"
+                                :items="uploadItems"
+                            />
+                        </div>
+
+                        <div
+                            class="rounded-xl border border-[var(--doc-border)] bg-[hsl(38_58%_97%/0.8)] p-4"
+                        >
+                            <p
+                                class="doc-seal text-xs font-semibold tracking-[0.12em] uppercase"
+                            >
+                                Matter context
+                            </p>
+                            <p class="doc-title mt-2 text-base font-semibold">
+                                {{ matter.title }}
+                            </p>
+                            <p class="doc-subtle mt-2 text-xs">
+                                The file will be stored with tenant-scoped
+                                encryption and linked to this matter.
+                            </p>
+                        </div>
+
+                        <div class="flex flex-wrap items-center gap-3">
+                            <Button
+                                type="submit"
+                                :disabled="
+                                    form.processing ||
+                                    !canCreateDocuments ||
+                                    !form.file
+                                "
+                                class="bg-[var(--doc-seal)] text-white hover:bg-[hsl(9_72%_30%)]"
+                            >
+                                {{
+                                    form.processing
+                                        ? 'Uploading...'
+                                        : 'Upload Document'
+                                }}
+                            </Button>
+
+                            <Button as-child type="button" variant="outline">
+                                <Link :href="DocumentController.index()"
+                                    >Back to documents</Link
+                                >
+                            </Button>
+                        </div>
                     </div>
                 </form>
             </DocumentExperienceSurface>
