@@ -12,6 +12,7 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
+        setPermissionsTeamId(null);
         $this->call(RolesAndPermissionsSeeder::class);
 
         $tenant = Tenant::create([
@@ -20,27 +21,30 @@ class DatabaseSeeder extends Seeder
             'slug' => 'demo-law-firm',
         ]);
 
-        setPermissionsTeamId($tenant->id);
-
-        User::factory()->create([
+        $superAdmin = User::factory()->create([
             'name' => 'Super Admin',
             'email' => 'super@demo.test',
-        ])->assignRole('super-admin');
+        ]);
 
-        User::factory()->forTenant($tenant)->create([
+        $this->assignRoleWithTeamContext($superAdmin, 'super-admin', $tenant->id);
+
+        $tenantAdmin = User::factory()->forTenant($tenant)->create([
             'name' => 'Tenant Admin',
             'email' => 'admin@demo.test',
-        ])->assignRole('tenant-admin');
+        ]);
+        $this->assignRoleWithTeamContext($tenantAdmin, 'tenant-admin', $tenant->id);
 
-        User::factory()->forTenant($tenant)->create([
+        $partner = User::factory()->forTenant($tenant)->create([
             'name' => 'Partner User',
             'email' => 'partner@demo.test',
-        ])->assignRole('partner');
+        ]);
+        $this->assignRoleWithTeamContext($partner, 'partner', $tenant->id);
 
-        User::factory()->forTenant($tenant)->create([
+        $associate = User::factory()->forTenant($tenant)->create([
             'name' => 'Associate User',
             'email' => 'associate@demo.test',
-        ])->assignRole('associate');
+        ]);
+        $this->assignRoleWithTeamContext($associate, 'associate', $tenant->id);
 
         tenancy()->initialize($tenant);
 
@@ -57,5 +61,12 @@ class DatabaseSeeder extends Seeder
             });
 
         tenancy()->end();
+        setPermissionsTeamId(null);
+    }
+
+    protected function assignRoleWithTeamContext(User $user, string $roleName, ?string $teamId): void
+    {
+        setPermissionsTeamId($teamId);
+        $user->assignRole($roleName);
     }
 }
