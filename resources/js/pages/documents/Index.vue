@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { Head, Link, usePage } from '@inertiajs/vue3';
+import DocumentController from '@/actions/App/Http/Controllers/DocumentController';
+import MatterController from '@/actions/App/Http/Controllers/MatterController';
 import DocumentEmptyState from '@/components/documents/DocumentEmptyState.vue';
 import DocumentExperienceFrame from '@/components/documents/DocumentExperienceFrame.vue';
 import DocumentExperienceSurface from '@/components/documents/DocumentExperienceSurface.vue';
@@ -12,8 +14,6 @@ import {
     type DocumentExperienceGuardrails,
     type PaginatedData,
 } from '@/types';
-import DocumentController from '@/actions/App/Http/Controllers/DocumentController';
-import MatterController from '@/actions/App/Http/Controllers/MatterController';
 
 defineProps<{
     documents: PaginatedData<Document>;
@@ -140,7 +140,7 @@ function formatFileSize(bytes: number): string {
                     <table class="min-w-full text-sm">
                         <thead>
                             <tr
-                                class="doc-grid-line border-b bg-[hsl(37_38%_93%/0.75)]"
+                                class="doc-grid-line border-b bg-muted/75"
                             >
                                 <th
                                     class="px-4 py-3 text-left text-xs font-semibold tracking-[0.12em] uppercase"
@@ -270,7 +270,7 @@ function formatFileSize(bytes: number): string {
                         :class="
                             link.active
                                 ? 'border-[var(--doc-seal)] bg-[var(--doc-seal)] text-white'
-                                : 'bg-[hsl(37_38%_96%)] hover:bg-[hsl(37_38%_93%)]'
+                                : 'bg-[var(--doc-paper)] hover:bg-muted'
                         "
                     >
                         <span v-html="link.label" />

@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
+import DocumentController from '@/actions/App/Http/Controllers/DocumentController';
+import MatterController from '@/actions/App/Http/Controllers/MatterController';
 import DocumentEmptyState from '@/components/documents/DocumentEmptyState.vue';
 import DocumentExperienceFrame from '@/components/documents/DocumentExperienceFrame.vue';
 import DocumentExperienceSurface from '@/components/documents/DocumentExperienceSurface.vue';
@@ -16,8 +18,6 @@ import {
     type DocumentExperienceGuardrails,
     type Matter,
 } from '@/types';
-import DocumentController from '@/actions/App/Http/Controllers/DocumentController';
-import MatterController from '@/actions/App/Http/Controllers/MatterController';
 
 const props = defineProps<{
     matter: Matter;
@@ -143,7 +143,7 @@ function submit(): void {
                             required
                             autocomplete="off"
                             placeholder="e.g. Retainer agreement"
-                            class="border-[var(--doc-border)] bg-[hsl(38_50%_98%)]"
+                            class="border-[var(--doc-border)] bg-card"
                         />
                         <InputError :message="form.errors.title" />
                     </div>
@@ -167,7 +167,7 @@ function submit(): void {
                         </div>
 
                         <div
-                            class="rounded-xl border border-[var(--doc-border)] bg-[hsl(38_58%_97%/0.8)] p-4"
+                            class="rounded-xl border border-[var(--doc-border)] bg-card/80 p-4"
                         >
                             <p
                                 class="doc-seal text-xs font-semibold tracking-[0.12em] uppercase"
@@ -191,7 +191,7 @@ function submit(): void {
                                     !canCreateDocuments ||
                                     !form.file
                                 "
-                                class="bg-[var(--doc-seal)] text-white hover:bg-[hsl(9_72%_30%)]"
+                                class="bg-[var(--doc-seal)] text-white hover:bg-primary/90"
                             >
                                 {{
                                     form.processing

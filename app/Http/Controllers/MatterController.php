@@ -23,8 +23,10 @@ class MatterController extends Controller
         return Inertia::render('matters/Index', [
             'matters' => Matter::query()
                 ->with('client')
+                ->withCount('documents')
                 ->latest()
                 ->paginate(15),
+            'documentExperience' => DocumentExperienceGuardrails::inertiaPayload(),
         ]);
     }
 

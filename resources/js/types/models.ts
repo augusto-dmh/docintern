@@ -10,6 +10,7 @@ export type Client = {
     notes: string | null;
     created_at: string;
     updated_at: string;
+    matters_count?: number;
 };
 
 export type Matter = {
@@ -45,6 +46,14 @@ export type Document = {
     updated_at: string;
     matter?: Matter;
     uploader?: User | null;
+};
+
+export type DocumentActivity = {
+    id: number;
+    action: string;
+    created_at: string;
+    user: Pick<User, 'id' | 'name'> | null;
+    ip_address: string | null;
 };
 
 export type PaginatedData<T> = {
