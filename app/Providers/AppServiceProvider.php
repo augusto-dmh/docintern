@@ -2,12 +2,17 @@
 
 namespace App\Providers;
 
+use App\Services\Processing\ClassificationProvider;
+use App\Services\Processing\OcrProvider;
+use App\Services\Processing\SimulatedClassificationProvider;
+use App\Services\Processing\SimulatedOcrProvider;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use InvalidArgumentException;
 use Stancl\Tenancy\Contracts\UniqueIdentifierGenerator;
 use Stancl\Tenancy\UUIDGenerator;
 
@@ -19,6 +24,22 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(UniqueIdentifierGenerator::class, UUIDGenerator::class);
+        $this->app->bind(OcrProvider::class, function ($app) {
+            $provider = (string) config('processing.ocr_provider', 'simulated');
+
+            return match ($provider) {
+                'simulated' => $app->make(SimulatedOcrProvider::class),
+                default => throw new InvalidArgumentException("Unsupported OCR provider [{$provider}]."),
+            };
+        });
+        $this->app->bind(ClassificationProvider::class, function ($app) {
+            $provider = (string) config('processing.classification_provider', 'simulated');
+
+            return match ($provider) {
+                'simulated' => $app->make(SimulatedClassificationProvider::class),
+                default => throw new InvalidArgumentException("Unsupported classification provider [{$provider}]."),
+            };
+        });
     }
 
     /**
