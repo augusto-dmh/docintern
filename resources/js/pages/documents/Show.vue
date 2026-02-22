@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { Head, Link, usePage } from '@inertiajs/vue3';
-import DocumentController from '@/actions/App/Http/Controllers/DocumentController';
-import MatterController from '@/actions/App/Http/Controllers/MatterController';
 import DocumentExperienceFrame from '@/components/documents/DocumentExperienceFrame.vue';
 import DocumentExperienceSurface from '@/components/documents/DocumentExperienceSurface.vue';
+import DocumentStatusBadge from '@/components/documents/DocumentStatusBadge.vue';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/AppLayout.vue';
 import {
@@ -11,6 +10,8 @@ import {
     type Document,
     type DocumentExperienceGuardrails,
 } from '@/types';
+import DocumentController from '@/actions/App/Http/Controllers/DocumentController';
+import MatterController from '@/actions/App/Http/Controllers/MatterController';
 
 const props = defineProps<{
     document: Document;
@@ -58,6 +59,13 @@ function formatFileSize(bytes: number): string {
             eyebrow="Case document"
             :title="document.title"
         >
+            <template #description>
+                <span class="inline-flex items-center gap-2">
+                    <span class="doc-subtle text-sm">Current status</span>
+                    <DocumentStatusBadge :status="document.status" />
+                </span>
+            </template>
+
             <template #actions>
                 <Button
                     as-child
@@ -80,7 +88,7 @@ function formatFileSize(bytes: number): string {
                 :delay="1"
                 class="mt-6 p-6 sm:p-8"
             >
-                <dl class="grid gap-5 sm:grid-cols-2">
+                <dl class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                     <div>
                         <dt
                             class="doc-subtle text-xs font-semibold tracking-[0.12em] uppercase"
@@ -120,8 +128,8 @@ function formatFileSize(bytes: number): string {
                         >
                             Status
                         </dt>
-                        <dd class="mt-1 text-sm">
-                            {{ document.status.replaceAll('_', ' ') }}
+                        <dd class="mt-1">
+                            <DocumentStatusBadge :status="document.status" />
                         </dd>
                     </div>
 
