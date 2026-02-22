@@ -3,16 +3,23 @@ import { Head, Link, usePage } from '@inertiajs/vue3';
 import ClientController from '@/actions/App/Http/Controllers/ClientController';
 import DocumentController from '@/actions/App/Http/Controllers/DocumentController';
 import MatterController from '@/actions/App/Http/Controllers/MatterController';
+import DocumentEmptyState from '@/components/documents/DocumentEmptyState.vue';
+import DocumentExperienceFrame from '@/components/documents/DocumentExperienceFrame.vue';
+import DocumentExperienceSurface from '@/components/documents/DocumentExperienceSurface.vue';
+import DocumentStatusBadge from '@/components/documents/DocumentStatusBadge.vue';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { matterStatusToneClass } from '@/lib/document-experience';
 import {
     type BreadcrumbItem,
     type Client,
     type Document,
+    type DocumentExperienceGuardrails,
     type Matter,
 } from '@/types';
 
 type Props = {
+    documentExperience: DocumentExperienceGuardrails;
     matter: Matter & { client: Client; documents: Document[] };
 };
 
@@ -32,52 +39,77 @@ const breadcrumbItems: BreadcrumbItem[] = [
         title: props.matter.title,
     },
 ];
+
+function formatDate(value: string): string {
+    return new Intl.DateTimeFormat('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+    }).format(new Date(value));
+}
+
+function matterStatusClass(status: Matter['status']): string {
+    return matterStatusToneClass(status);
+}
 </script>
 
 <template>
     <AppLayout :breadcrumbs="breadcrumbItems">
         <Head :title="matter.title" />
 
-        <div class="space-y-6">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                    <h1 class="text-2xl font-semibold">{{ matter.title }}</h1>
+        <DocumentExperienceFrame
+            :document-experience="documentExperience"
+            eyebrow="Matter workspace"
+            :title="matter.title"
+        >
+            <template #description>
+                <span class="inline-flex items-center gap-2">
+                    <span class="doc-subtle text-sm">Matter status</span>
                     <span
                         class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium"
-                        :class="{
-                            'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300':
-                                matter.status === 'open',
-                            'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300':
-                                matter.status === 'closed',
-                            'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300':
-                                matter.status === 'on_hold',
-                        }"
+                        :class="matterStatusClass(matter.status)"
                     >
                         {{ matter.status.replace('_', ' ') }}
                     </span>
-                </div>
+                </span>
+            </template>
+
+            <template #actions>
                 <Button v-if="canEditMatters" as-child variant="outline">
                     <Link :href="MatterController.edit(matter)">Edit</Link>
                 </Button>
-            </div>
+                <Button v-if="canCreateDocuments" as-child>
+                    <Link :href="DocumentController.create(matter)">
+                        Upload Document
+                    </Link>
+                </Button>
+            </template>
 
-            <div class="rounded-lg border p-6">
+            <DocumentExperienceSurface
+                :document-experience="documentExperience"
+                :delay="1"
+                class="mt-6 p-6"
+            >
                 <dl class="grid gap-4 sm:grid-cols-2">
                     <div>
-                        <dt class="text-sm font-medium text-muted-foreground">
+                        <dt
+                            class="doc-subtle text-sm font-medium tracking-[0.08em] uppercase"
+                        >
                             Client
                         </dt>
                         <dd class="mt-1">
                             <Link
                                 :href="ClientController.show(matter.client)"
-                                class="text-foreground hover:underline"
+                                class="doc-title text-base font-semibold hover:underline"
                             >
                                 {{ matter.client.name }}
                             </Link>
                         </dd>
                     </div>
                     <div>
-                        <dt class="text-sm font-medium text-muted-foreground">
+                        <dt
+                            class="doc-subtle text-sm font-medium tracking-[0.08em] uppercase"
+                        >
                             Reference Number
                         </dt>
                         <dd class="mt-1">
@@ -85,89 +117,138 @@ const breadcrumbItems: BreadcrumbItem[] = [
                         </dd>
                     </div>
                     <div v-if="matter.description" class="sm:col-span-2">
-                        <dt class="text-sm font-medium text-muted-foreground">
+                        <dt
+                            class="doc-subtle text-sm font-medium tracking-[0.08em] uppercase"
+                        >
                             Description
                         </dt>
-                        <dd class="mt-1 whitespace-pre-line">
+                        <dd class="doc-subtle mt-1 whitespace-pre-line">
                             {{ matter.description }}
                         </dd>
                     </div>
                 </dl>
-            </div>
+            </DocumentExperienceSurface>
 
-            <div class="space-y-4">
-                <div class="flex items-center justify-between">
-                    <h2 class="text-lg font-semibold">Documents</h2>
-                    <Button v-if="canCreateDocuments" as-child size="sm">
-                        <Link :href="DocumentController.create(matter)">
-                            Upload Document
-                        </Link>
-                    </Button>
+            <DocumentExperienceSurface
+                :document-experience="documentExperience"
+                :delay="2"
+                class="mt-6 p-4 sm:p-5"
+            >
+                <div class="mb-4 flex items-center justify-between">
+                    <h2 class="doc-title text-xl font-semibold">Documents</h2>
+                    <span
+                        class="doc-subtle text-xs tracking-[0.12em] uppercase"
+                    >
+                        {{ matter.documents.length }} linked
+                    </span>
                 </div>
 
-                <div class="rounded-lg border">
-                    <table class="w-full text-sm">
-                        <thead>
-                            <tr class="border-b bg-muted/50">
-                                <th class="px-4 py-3 text-left font-medium">
-                                    Title
-                                </th>
-                                <th class="px-4 py-3 text-left font-medium">
-                                    File
-                                </th>
-                                <th class="px-4 py-3 text-left font-medium">
-                                    Status
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr v-if="matter.documents.length === 0">
-                                <td
-                                    colspan="3"
-                                    class="px-4 py-8 text-center text-muted-foreground"
+                <DocumentEmptyState
+                    v-if="matter.documents.length === 0"
+                    :document-experience="documentExperience"
+                    title="No documents linked"
+                    description="Use upload to add supporting files and keep this matter's archive complete."
+                >
+                    <template #actions>
+                        <Button v-if="canCreateDocuments" as-child>
+                            <Link :href="DocumentController.create(matter)">
+                                Upload first document
+                            </Link>
+                        </Button>
+                    </template>
+                </DocumentEmptyState>
+
+                <div v-else class="space-y-4">
+                    <div class="grid gap-3 md:hidden">
+                        <article
+                            v-for="document in matter.documents"
+                            :key="`matter-mobile-${document.id}`"
+                            class="doc-grid-line rounded-xl border p-4"
+                        >
+                            <div class="flex items-start justify-between gap-3">
+                                <Link
+                                    :href="DocumentController.show(document)"
+                                    class="doc-title text-base font-semibold hover:underline"
                                 >
-                                    No documents uploaded yet.
-                                </td>
-                            </tr>
-                            <tr
-                                v-for="document in matter.documents"
-                                :key="document.id"
-                                class="border-b last:border-0"
-                            >
-                                <td class="px-4 py-3 font-medium">
-                                    <Link
-                                        :href="
-                                            DocumentController.show(document)
-                                        "
-                                        class="hover:underline"
+                                    {{ document.title }}
+                                </Link>
+                                <DocumentStatusBadge
+                                    :status="document.status"
+                                />
+                            </div>
+
+                            <p class="doc-subtle mt-2 text-xs">
+                                {{ document.file_name }}
+                            </p>
+                            <p class="doc-subtle mt-1 text-xs">
+                                Uploaded {{ formatDate(document.created_at) }}
+                            </p>
+                        </article>
+                    </div>
+
+                    <div class="hidden overflow-x-auto md:block">
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr
+                                    class="doc-grid-line border-b bg-[hsl(37_38%_93%/0.75)]"
+                                >
+                                    <th
+                                        class="px-4 py-3 text-left text-xs font-semibold tracking-[0.12em] uppercase"
                                     >
-                                        {{ document.title }}
-                                    </Link>
-                                </td>
-                                <td class="px-4 py-3 text-muted-foreground">
-                                    {{ document.file_name }}
-                                </td>
-                                <td class="px-4 py-3">
-                                    <span
-                                        class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium"
-                                        :class="{
-                                            'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300':
-                                                document.status === 'uploaded',
-                                            'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300':
-                                                document.status ===
-                                                'ready_for_review',
-                                            'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300':
-                                                document.status === 'approved',
-                                        }"
+                                        Title
+                                    </th>
+                                    <th
+                                        class="px-4 py-3 text-left text-xs font-semibold tracking-[0.12em] uppercase"
                                     >
-                                        {{ document.status.replace(/_/g, ' ') }}
-                                    </span>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+                                        File
+                                    </th>
+                                    <th
+                                        class="px-4 py-3 text-left text-xs font-semibold tracking-[0.12em] uppercase"
+                                    >
+                                        Status
+                                    </th>
+                                    <th
+                                        class="px-4 py-3 text-left text-xs font-semibold tracking-[0.12em] uppercase"
+                                    >
+                                        Uploaded
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr
+                                    v-for="document in matter.documents"
+                                    :key="document.id"
+                                    class="doc-grid-line border-b last:border-0"
+                                >
+                                    <td class="px-4 py-3 font-medium">
+                                        <Link
+                                            :href="
+                                                DocumentController.show(
+                                                    document,
+                                                )
+                                            "
+                                            class="doc-title text-base font-semibold hover:underline"
+                                        >
+                                            {{ document.title }}
+                                        </Link>
+                                    </td>
+                                    <td class="doc-subtle px-4 py-3">
+                                        {{ document.file_name }}
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <DocumentStatusBadge
+                                            :status="document.status"
+                                        />
+                                    </td>
+                                    <td class="doc-subtle px-4 py-3">
+                                        {{ formatDate(document.created_at) }}
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-            </div>
-        </div>
+            </DocumentExperienceSurface>
+        </DocumentExperienceFrame>
     </AppLayout>
 </template>

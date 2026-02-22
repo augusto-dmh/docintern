@@ -1,6 +1,10 @@
 import type { ClassValue } from 'clsx';
 import { cn } from '@/lib/utils';
-import type { DocumentStatus, DocumentExperienceGuardrails } from '@/types';
+import type {
+    DocumentStatus,
+    DocumentExperienceGuardrails,
+    MatterStatus,
+} from '@/types';
 
 type DocumentTypographyToken = keyof DocumentExperienceGuardrails['typography'];
 type DocumentSurfaceDelay = 1 | 2 | null;
@@ -67,4 +71,16 @@ export function documentStatusToneClass(status: DocumentStatusLike): string {
     }
 
     return 'bg-[var(--doc-seal)]/15 text-[var(--doc-seal)]';
+}
+
+export function matterStatusToneClass(status: MatterStatus): string {
+    if (status === 'open') {
+        return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300';
+    }
+
+    if (status === 'on_hold') {
+        return 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300';
+    }
+
+    return 'bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300';
 }

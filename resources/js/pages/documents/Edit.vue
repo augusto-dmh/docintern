@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import { ref } from 'vue';
-import DocumentController from '@/actions/App/Http/Controllers/DocumentController';
 import DocumentExperienceFrame from '@/components/documents/DocumentExperienceFrame.vue';
 import DocumentExperienceSurface from '@/components/documents/DocumentExperienceSurface.vue';
+import DocumentStatusBadge from '@/components/documents/DocumentStatusBadge.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,6 +14,8 @@ import {
     type Document,
     type DocumentExperienceGuardrails,
 } from '@/types';
+import DocumentController from '@/actions/App/Http/Controllers/DocumentController';
+import MatterController from '@/actions/App/Http/Controllers/MatterController';
 
 const props = defineProps<{
     document: Document;
@@ -83,6 +85,37 @@ function deleteDocument(): void {
             <DocumentExperienceSurface
                 :document-experience="documentExperience"
                 :delay="1"
+                class="mt-6 p-4 sm:p-5"
+            >
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                    <div class="space-y-1">
+                        <p class="doc-subtle text-xs">Archived file</p>
+                        <p class="doc-title text-sm font-semibold">
+                            {{ document.file_name }}
+                        </p>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-2">
+                        <DocumentStatusBadge :status="document.status" />
+                        <Button
+                            v-if="document.matter"
+                            as-child
+                            variant="outline"
+                            size="sm"
+                        >
+                            <Link
+                                :href="MatterController.show(document.matter)"
+                            >
+                                Open matter
+                            </Link>
+                        </Button>
+                    </div>
+                </div>
+            </DocumentExperienceSurface>
+
+            <DocumentExperienceSurface
+                :document-experience="documentExperience"
+                :delay="2"
                 class="mt-6 p-6 sm:p-8"
             >
                 <form class="space-y-6" @submit.prevent="updateDocument">
