@@ -15,10 +15,12 @@ class DatabaseSeeder extends Seeder
         $this->call(RolesAndPermissionsSeeder::class);
 
         $tenant = Tenant::create([
-            'id' => 'demo',
+            'id' => '1',
             'name' => 'Demo Law Firm',
             'slug' => 'demo-law-firm',
         ]);
+
+        setPermissionsTeamId($tenant->id);
 
         User::factory()->create([
             'name' => 'Super Admin',
