@@ -1,4 +1,4 @@
-.PHONY: up down build shell composer artisan migrate seed fresh test npm logs s3-ls s3-shell
+.PHONY: up down build shell composer artisan migrate seed fresh test npm logs s3-ls s3-shell worker-logs worker-restart worker-shell rabbitmq-queues scheduler-logs
 
 up:
 	docker compose up -d
@@ -41,6 +41,21 @@ s3-ls:
 
 s3-shell:
 	docker compose exec localstack sh
+
+worker-logs:
+	docker compose logs -f worker
+
+worker-restart:
+	docker compose restart worker
+
+worker-shell:
+	docker compose exec worker bash
+
+rabbitmq-queues:
+	docker compose exec rabbitmq rabbitmqctl -p /docintern list_queues name messages consumers
+
+scheduler-logs:
+	docker compose logs -f scheduler
 
 %:
 	@:
