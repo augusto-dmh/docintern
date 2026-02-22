@@ -12,6 +12,7 @@ class RolesAndPermissionsSeeder extends Seeder
     public function run(): void
     {
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
+        setPermissionsTeamId(null);
 
         $permissions = [
             'view clients',
@@ -61,5 +62,7 @@ class RolesAndPermissionsSeeder extends Seeder
                 'view matters',
                 'view documents',
             ]);
+
+        setPermissionsTeamId(null);
     }
 }
