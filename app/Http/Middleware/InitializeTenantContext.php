@@ -10,7 +10,6 @@ use Closure;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Stancl\Tenancy\Contracts\Tenant as TenantContract;
@@ -97,7 +96,7 @@ class InitializeTenantContext
 
     protected function resolveTenantFromSuperAdminSession(Request $request, mixed $user): ?Tenant
     {
-        if (! $user instanceof User || ! $this->hasSuperAdminRole($user)) {
+        if (! $user instanceof User || ! $user->hasSuperAdminRole()) {
             return null;
         }
 
@@ -228,29 +227,7 @@ class InitializeTenantContext
 
     protected function hasSuperAdminRole(User $user): bool
     {
-        $tableNames = config('permission.table_names');
-        $columnNames = config('permission.column_names');
-
-        if (
-            ! is_array($tableNames)
-            || ! isset($tableNames['model_has_roles'], $tableNames['roles'])
-            || ! is_array($columnNames)
-            || ! isset($columnNames['model_morph_key'])
-        ) {
-            return $user->hasRole('super-admin');
-        }
-
-        $rolePivotKey = (string) ($columnNames['role_pivot_key'] ?? 'role_id');
-        $modelMorphKey = (string) $columnNames['model_morph_key'];
-        $modelHasRolesTable = (string) $tableNames['model_has_roles'];
-        $rolesTable = (string) $tableNames['roles'];
-
-        return DB::table($modelHasRolesTable)
-            ->join($rolesTable, $rolesTable.'.id', '=', $modelHasRolesTable.'.'.$rolePivotKey)
-            ->where($modelHasRolesTable.'.model_type', $user::class)
-            ->where($modelHasRolesTable.'.'.$modelMorphKey, $user->getKey())
-            ->where($rolesTable.'.name', 'super-admin')
-            ->exists();
+        return $user->hasSuperAdminRole();
     }
 
     protected function denyAccess(): never
