@@ -971,6 +971,15 @@ CMD ["sh", "-c", "while true; do php artisan schedule:run --verbose --no-interac
 
 ```json
 {
+  "users": [
+    {
+      "name": "docintern",
+      "password_hash": "15f0cBVPmalTwPG+z6JSroKFIBG88NpeWv9xMAKJBlgl9aOK",
+      "hashing_algorithm": "rabbit_password_hashing_sha256",
+      "tags": ["administrator"],
+      "limits": {}
+    }
+  ],
   "vhosts": [{ "name": "/docintern" }],
   "permissions": [
     {
