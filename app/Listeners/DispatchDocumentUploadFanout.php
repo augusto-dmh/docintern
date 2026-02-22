@@ -16,17 +16,27 @@ class DispatchDocumentUploadFanout
         }
 
         $payload = $event->toPayload();
+        $connection = $this->resolveQueueConnection();
 
         VirusScanConsumerJob::dispatch($payload)
-            ->onConnection('rabbitmq')
+            ->onConnection($connection)
             ->onQueue('queue.virus-scan');
 
         AuditLogConsumerJob::dispatch($payload)
-            ->onConnection('rabbitmq')
+            ->onConnection($connection)
             ->onQueue('queue.audit-log');
 
         OcrExtractionConsumerJob::dispatch($payload)
-            ->onConnection('rabbitmq')
+            ->onConnection($connection)
             ->onQueue('queue.ocr-extraction');
+    }
+
+    protected function resolveQueueConnection(): string
+    {
+        $configuredConnection = config('processing.queue_connection', config('queue.default', 'sync'));
+
+        return is_string($configuredConnection) && $configuredConnection !== ''
+            ? $configuredConnection
+            : 'sync';
     }
 }
