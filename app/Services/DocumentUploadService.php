@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Events\DocumentProcessingEvent;
 use App\Models\Document;
 use App\Models\Matter;
 use App\Models\User;
@@ -13,9 +14,29 @@ use RuntimeException;
 
 class DocumentUploadService
 {
+    public function __construct(
+        public ProcessingEventRecorder $processingEventRecorder,
+    ) {}
+
     public function upload(UploadedFile $file, Matter $matter, User $user, string $title): Document
     {
-        return DB::transaction(function () use ($file, $matter, $user, $title): Document {
+        /**
+         * @var array{
+         *     document: Document,
+         *     message_id: string,
+         *     trace_id: string,
+         *     metadata: array{
+         *         original_filename: string,
+         *         mime_type: string|null,
+         *         size_bytes: int,
+         *         uploaded_by_user_id: int
+         *     }
+         * } $uploadResult
+         */
+        $uploadResult = DB::transaction(function () use ($file, $matter, $user, $title): array {
+            $messageId = (string) Str::uuid();
+            $traceId = (string) Str::uuid();
+
             $document = Document::query()->create([
                 'tenant_id' => $matter->tenant_id,
                 'matter_id' => $matter->id,
@@ -26,6 +47,7 @@ class DocumentUploadService
                 'mime_type' => $file->getClientMimeType(),
                 'file_size' => $file->getSize() ?? 0,
                 'status' => 'uploaded',
+                'processing_trace_id' => $traceId,
             ]);
 
             $filePath = $this->buildFilePath($matter->tenant_id, $document->id, $file);
@@ -51,8 +73,44 @@ class DocumentUploadService
                 'metadata' => null,
             ]);
 
-            return $document->fresh();
+            $metadata = [
+                'original_filename' => $document->file_name,
+                'mime_type' => $document->mime_type,
+                'size_bytes' => $document->file_size,
+                'uploaded_by_user_id' => $user->id,
+            ];
+
+            $this->processingEventRecorder->record(
+                $document,
+                $messageId,
+                'upload-dispatch',
+                'document.uploaded',
+                null,
+                'uploaded',
+                $traceId,
+                $metadata,
+            );
+
+            return [
+                'document' => $document->fresh(),
+                'message_id' => $messageId,
+                'trace_id' => $traceId,
+                'metadata' => $metadata,
+            ];
         });
+
+        event(new DocumentProcessingEvent(
+            messageId: $uploadResult['message_id'],
+            traceId: $uploadResult['trace_id'],
+            tenantId: $matter->tenant_id,
+            documentId: $uploadResult['document']->id,
+            event: 'document.uploaded',
+            timestamp: now()->toImmutable(),
+            metadata: $uploadResult['metadata'],
+            retryCount: 0,
+        ));
+
+        return $uploadResult['document'];
     }
 
     public function generatePresignedUrl(Document $document, int $ttlMinutes = 15): string
