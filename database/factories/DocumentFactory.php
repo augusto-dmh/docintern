@@ -22,6 +22,7 @@ class DocumentFactory extends Factory
             'mime_type' => 'application/pdf',
             'file_size' => fake()->numberBetween(10000, 5000000),
             'status' => 'uploaded',
+            'processing_trace_id' => null,
         ];
     }
 
