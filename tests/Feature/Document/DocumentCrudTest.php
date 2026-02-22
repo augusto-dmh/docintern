@@ -10,6 +10,7 @@ use App\Services\DocumentUploadService;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Inertia\Testing\AssertableInertia as Assert;
 use Mockery\MockInterface;
 use Spatie\Permission\PermissionRegistrar;
 
@@ -39,23 +40,38 @@ function createDocumentCrudContext(): array
 }
 
 test('document index page can be rendered', function () {
-    [$tenant, $user] = createDocumentCrudContext();
+    [$tenant, $user, $matter] = createDocumentCrudContext();
+    $document = Document::factory()->create([
+        'tenant_id' => $tenant->id,
+        'matter_id' => $matter->id,
+        'uploaded_by' => $user->id,
+    ]);
 
-    $response = $this->actingAs($user)
+    $this->actingAs($user)
         ->withHeaders(['X-Tenant-ID' => $tenant->id])
-        ->get(route('documents.index'));
-
-    $response->assertSuccessful();
+        ->get(route('documents.index'))
+        ->assertSuccessful()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('documents/Index')
+            ->has('documents.data', 1)
+            ->where('documents.data.0.id', $document->id)
+            ->where('documents.data.0.matter.id', $matter->id)
+            ->where('documents.data.0.uploader.id', $user->id)
+        );
 });
 
 test('document create page can be rendered', function () {
     [$tenant, $user, $matter] = createDocumentCrudContext();
 
-    $response = $this->actingAs($user)
+    $this->actingAs($user)
         ->withHeaders(['X-Tenant-ID' => $tenant->id])
-        ->get(route('matters.documents.create', $matter));
-
-    $response->assertSuccessful();
+        ->get(route('matters.documents.create', $matter))
+        ->assertSuccessful()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('documents/Create')
+            ->where('matter.id', $matter->id)
+            ->where('matter.title', $matter->title)
+        );
 });
 
 test('document can be stored', function () {
@@ -130,11 +146,17 @@ test('document show page can be rendered and logs a view event', function () {
     ]);
     tenancy()->initialize($tenant);
 
-    $response = $this->actingAs($user)
+    $this->actingAs($user)
         ->withHeaders(['X-Tenant-ID' => $tenant->id])
-        ->get(route('documents.show', $document));
+        ->get(route('documents.show', $document))
+        ->assertSuccessful()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('documents/Show')
+            ->where('document.id', $document->id)
+            ->where('document.matter.id', $matter->id)
+            ->where('document.uploader.id', $user->id)
+        );
 
-    $response->assertSuccessful();
     expect(AuditLog::query()
         ->where('auditable_type', Document::class)
         ->where('auditable_id', $document->id)
@@ -151,11 +173,15 @@ test('document edit page can be rendered', function () {
     ]);
     tenancy()->initialize($tenant);
 
-    $response = $this->actingAs($user)
+    $this->actingAs($user)
         ->withHeaders(['X-Tenant-ID' => $tenant->id])
-        ->get(route('documents.edit', $document));
-
-    $response->assertSuccessful();
+        ->get(route('documents.edit', $document))
+        ->assertSuccessful()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('documents/Edit')
+            ->where('document.id', $document->id)
+            ->where('document.title', $document->title)
+        );
 });
 
 test('document can be updated', function () {
