@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { Form, Head } from '@inertiajs/vue3';
 import TenantContextController from '@/actions/App/Http/Controllers/Settings/TenantContextController';
-import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -16,12 +15,10 @@ type TenantOption = {
     slug: string;
 };
 
-type Props = {
+defineProps<{
     tenants: TenantOption[];
     activeTenantId: string | null;
-};
-
-defineProps<Props>();
+}>();
 
 const breadcrumbItems: BreadcrumbItem[] = [
     {
@@ -35,41 +32,33 @@ const breadcrumbItems: BreadcrumbItem[] = [
     <AppLayout :breadcrumbs="breadcrumbItems">
         <Head title="Tenant context" />
 
-        <h1 class="sr-only">Tenant Context Settings</h1>
-
         <SettingsLayout>
             <div class="space-y-6">
-                <Heading
-                    variant="small"
-                    title="Tenant context"
-                    description="Select the active tenant used for tenant-scoped pages"
-                />
-
-                <p
-                    v-if="activeTenantId"
-                    class="text-sm text-muted-foreground"
-                >
-                    Active tenant context is set. You can switch tenants at any
-                    time.
-                </p>
-                <p v-else class="text-sm text-muted-foreground">
-                    No tenant context selected. Tenant-scoped pages are blocked
-                    until you choose one.
-                </p>
+                <header>
+                    <h2 class="doc-title text-2xl font-semibold">
+                        Tenant context
+                    </h2>
+                    <p class="doc-subtle mt-2 text-sm">
+                        Super-admin sessions must select an active tenant before
+                        opening tenant-scoped pages.
+                    </p>
+                </header>
 
                 <Form
                     v-bind="TenantContextController.update.form()"
-                    class="space-y-6"
+                    class="grid gap-6"
                     v-slot="{ errors, processing, recentlySuccessful }"
                 >
                     <div class="grid gap-2">
-                        <Label for="tenant_id">Tenant</Label>
+                        <Label for="tenant_id" class="workspace-label"
+                            >Active tenant</Label
+                        >
                         <select
                             id="tenant_id"
                             name="tenant_id"
                             required
                             :value="activeTenantId ?? ''"
-                            class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                            class="workspace-select"
                         >
                             <option value="" disabled>Select a tenant</option>
                             <option
@@ -83,29 +72,33 @@ const breadcrumbItems: BreadcrumbItem[] = [
                         <InputError :message="errors.tenant_id" />
                     </div>
 
-                    <div class="flex items-center gap-4">
-                        <Button :disabled="processing">Save context</Button>
-
-                        <Transition
-                            enter-active-class="transition ease-in-out"
-                            enter-from-class="opacity-0"
-                            leave-active-class="transition ease-in-out"
-                            leave-to-class="opacity-0"
+                    <div class="flex flex-wrap items-center gap-3">
+                        <Button
+                            :disabled="processing"
+                            class="workspace-primary-button"
                         >
-                            <p
-                                v-show="recentlySuccessful"
-                                class="text-sm text-neutral-600"
-                            >
-                                Saved.
-                            </p>
-                        </Transition>
+                            Save context
+                        </Button>
+                        <p v-if="recentlySuccessful" class="doc-subtle text-sm">
+                            Saved.
+                        </p>
                     </div>
                 </Form>
 
-                <div class="border-t pt-6">
+                <section
+                    class="workspace-panel border-[var(--doc-border)]/70 p-5"
+                >
+                    <h3 class="doc-title text-lg font-semibold">
+                        Clear context
+                    </h3>
+                    <p class="doc-subtle mt-2 text-sm">
+                        Remove the selected tenant to return to neutral
+                        super-admin mode.
+                    </p>
                     <Form
                         v-bind="TenantContextController.destroy.form()"
                         v-slot="{ processing }"
+                        class="mt-4"
                     >
                         <Button
                             variant="outline"
@@ -114,7 +107,7 @@ const breadcrumbItems: BreadcrumbItem[] = [
                             Clear context
                         </Button>
                     </Form>
-                </div>
+                </section>
             </div>
         </SettingsLayout>
     </AppLayout>

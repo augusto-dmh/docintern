@@ -1,14 +1,12 @@
 <script setup lang="ts">
-import { Link } from '@inertiajs/vue3';
+import { Link, usePage } from '@inertiajs/vue3';
 import {
-    BookOpen,
     Briefcase,
     FileText,
-    Folder,
     LayoutGrid,
+    Settings,
     Users,
 } from 'lucide-vue-next';
-import NavFooter from '@/components/NavFooter.vue';
 import NavMain from '@/components/NavMain.vue';
 import NavUser from '@/components/NavUser.vue';
 import {
@@ -24,8 +22,12 @@ import { dashboard } from '@/routes';
 import { index as clientsIndex } from '@/routes/clients';
 import { index as documentsIndex } from '@/routes/documents';
 import { index as mattersIndex } from '@/routes/matters';
+import { edit as editProfile } from '@/routes/profile';
 import { type NavItem } from '@/types';
 import AppLogo from './AppLogo.vue';
+
+const page = usePage();
+const tenantContext = page.props.tenantContext;
 
 const mainNavItems: NavItem[] = [
     {
@@ -48,28 +50,24 @@ const mainNavItems: NavItem[] = [
         href: documentsIndex(),
         icon: FileText,
     },
-];
-
-const footerNavItems: NavItem[] = [
     {
-        title: 'Github Repo',
-        href: 'https://github.com/laravel/vue-starter-kit',
-        icon: Folder,
-    },
-    {
-        title: 'Documentation',
-        href: 'https://laravel.com/docs/starter-kits#vue',
-        icon: BookOpen,
+        title: 'Settings',
+        href: editProfile(),
+        icon: Settings,
     },
 ];
 </script>
 
 <template>
-    <Sidebar collapsible="icon" variant="inset">
-        <SidebarHeader>
+    <Sidebar
+        collapsible="offcanvas"
+        variant="inset"
+        class="workspace-sidebar border-r border-[var(--doc-border)]/70"
+    >
+        <SidebarHeader class="border-b border-[var(--doc-border)]/70 px-3 py-3">
             <SidebarMenu>
                 <SidebarMenuItem>
-                    <SidebarMenuButton size="lg" as-child>
+                    <SidebarMenuButton size="lg" as-child class="h-auto p-1.5">
                         <Link :href="dashboard()">
                             <AppLogo />
                         </Link>
@@ -82,8 +80,14 @@ const footerNavItems: NavItem[] = [
             <NavMain :items="mainNavItems" />
         </SidebarContent>
 
-        <SidebarFooter>
-            <NavFooter :items="footerNavItems" />
+        <SidebarFooter class="border-t border-[var(--doc-border)]/70 px-3 py-3">
+            <p class="doc-subtle px-2 text-[11px] tracking-[0.11em] uppercase">
+                {{
+                    tenantContext.activeTenant
+                        ? `Context: ${tenantContext.activeTenant.name}`
+                        : 'Tenant-scoped security'
+                }}
+            </p>
             <NavUser />
         </SidebarFooter>
     </Sidebar>

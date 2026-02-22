@@ -10,8 +10,8 @@ import {
     InputOTPSlot,
 } from '@/components/ui/input-otp';
 import AuthLayout from '@/layouts/AuthLayout.vue';
-import type { TwoFactorConfigContent } from '@/types';
 import { store } from '@/routes/two-factor/login';
+import type { TwoFactorConfigContent } from '@/types';
 
 const authConfigContent = computed<TwoFactorConfigContent>(() => {
     if (showRecoveryInput.value) {
@@ -81,9 +81,13 @@ const code = ref<string>('');
                         </div>
                         <InputError :message="errors.code" />
                     </div>
-                    <Button type="submit" class="w-full" :disabled="processing"
-                        >Continue</Button
+                    <Button
+                        type="submit"
+                        class="workspace-primary-button w-full"
+                        :disabled="processing"
                     >
+                        Continue
+                    </Button>
                     <div class="text-center text-sm text-muted-foreground">
                         <span>or you can </span>
                         <button
@@ -110,11 +114,16 @@ const code = ref<string>('');
                         placeholder="Enter recovery code"
                         :autofocus="showRecoveryInput"
                         required
+                        class="workspace-input"
                     />
                     <InputError :message="errors.recovery_code" />
-                    <Button type="submit" class="w-full" :disabled="processing"
-                        >Continue</Button
+                    <Button
+                        type="submit"
+                        class="workspace-primary-button w-full"
+                        :disabled="processing"
                     >
+                        Continue
+                    </Button>
 
                     <div class="text-center text-sm text-muted-foreground">
                         <span>or you can </span>
