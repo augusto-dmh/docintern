@@ -3,6 +3,7 @@ import { Link } from '@inertiajs/vue3';
 import {
     BookOpen,
     Briefcase,
+    FileText,
     Folder,
     LayoutGrid,
     Users,
@@ -21,6 +22,7 @@ import {
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
 import { index as clientsIndex } from '@/routes/clients';
+import { index as documentsIndex } from '@/routes/documents';
 import { index as mattersIndex } from '@/routes/matters';
 import { type NavItem } from '@/types';
 import AppLogo from './AppLogo.vue';
@@ -40,6 +42,11 @@ const mainNavItems: NavItem[] = [
         title: 'Matters',
         href: mattersIndex(),
         icon: Briefcase,
+    },
+    {
+        title: 'Documents',
+        href: documentsIndex(),
+        icon: FileText,
     },
 ];
 

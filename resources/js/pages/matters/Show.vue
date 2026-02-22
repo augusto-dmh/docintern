@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Head, Link, usePage } from '@inertiajs/vue3';
 import ClientController from '@/actions/App/Http/Controllers/ClientController';
+import DocumentController from '@/actions/App/Http/Controllers/DocumentController';
 import MatterController from '@/actions/App/Http/Controllers/MatterController';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/AppLayout.vue';
@@ -19,6 +20,8 @@ const props = defineProps<Props>();
 
 const canEditMatters =
     usePage().props.auth.permissions.includes('edit matters');
+const canCreateDocuments =
+    usePage().props.auth.permissions.includes('create documents');
 
 const breadcrumbItems: BreadcrumbItem[] = [
     {
@@ -93,7 +96,14 @@ const breadcrumbItems: BreadcrumbItem[] = [
             </div>
 
             <div class="space-y-4">
-                <h2 class="text-lg font-semibold">Documents</h2>
+                <div class="flex items-center justify-between">
+                    <h2 class="text-lg font-semibold">Documents</h2>
+                    <Button v-if="canCreateDocuments" as-child size="sm">
+                        <Link :href="DocumentController.create(matter)">
+                            Upload Document
+                        </Link>
+                    </Button>
+                </div>
 
                 <div class="rounded-lg border">
                     <table class="w-full text-sm">
@@ -125,7 +135,14 @@ const breadcrumbItems: BreadcrumbItem[] = [
                                 class="border-b last:border-0"
                             >
                                 <td class="px-4 py-3 font-medium">
-                                    {{ document.title }}
+                                    <Link
+                                        :href="
+                                            DocumentController.show(document)
+                                        "
+                                        class="hover:underline"
+                                    >
+                                        {{ document.title }}
+                                    </Link>
                                 </td>
                                 <td class="px-4 py-3 text-muted-foreground">
                                     {{ document.file_name }}
