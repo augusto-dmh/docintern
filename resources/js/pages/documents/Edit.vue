@@ -2,15 +2,22 @@
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import DocumentController from '@/actions/App/Http/Controllers/DocumentController';
+import DocumentExperienceFrame from '@/components/documents/DocumentExperienceFrame.vue';
+import DocumentExperienceSurface from '@/components/documents/DocumentExperienceSurface.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { type BreadcrumbItem, type Document } from '@/types';
+import {
+    type BreadcrumbItem,
+    type Document,
+    type DocumentExperienceGuardrails,
+} from '@/types';
 
 const props = defineProps<{
     document: Document;
+    documentExperience: DocumentExperienceGuardrails;
 }>();
 
 const permissions = usePage().props.auth.permissions;
@@ -67,23 +74,16 @@ function deleteDocument(): void {
     <AppLayout :breadcrumbs="breadcrumbItems">
         <Head :title="`Edit ${document.title}`" />
 
-        <div class="documents-experience rounded-3xl p-6 sm:p-8">
-            <section class="doc-hero doc-fade-up p-6 sm:p-8">
-                <p
-                    class="doc-seal text-xs font-semibold tracking-[0.18em] uppercase"
-                >
-                    Metadata revision
-                </p>
-                <h1 class="doc-title mt-2 text-3xl font-semibold sm:text-4xl">
-                    Edit document record
-                </h1>
-                <p class="doc-subtle mt-3 text-sm sm:text-base">
-                    Update document title without changing the archived file.
-                </p>
-            </section>
-
-            <section
-                class="doc-surface doc-fade-up doc-delay-1 mt-6 p-6 sm:p-8"
+        <DocumentExperienceFrame
+            :document-experience="documentExperience"
+            eyebrow="Metadata revision"
+            title="Edit document record"
+            description="Update document title without changing the archived file."
+        >
+            <DocumentExperienceSurface
+                :document-experience="documentExperience"
+                :delay="1"
+                class="mt-6 p-6 sm:p-8"
             >
                 <form class="space-y-6" @submit.prevent="updateDocument">
                     <div class="grid gap-2">
@@ -119,11 +119,13 @@ function deleteDocument(): void {
                         </Button>
                     </div>
                 </form>
-            </section>
+            </DocumentExperienceSurface>
 
-            <section
+            <DocumentExperienceSurface
                 v-if="canDeleteDocuments"
-                class="doc-surface doc-fade-up doc-delay-2 mt-6 border-destructive/30 p-6 sm:p-8"
+                :document-experience="documentExperience"
+                :delay="2"
+                class="mt-6 border-destructive/30 p-6 sm:p-8"
             >
                 <h2 class="doc-title text-xl font-semibold">
                     Destructive action
@@ -149,7 +151,7 @@ function deleteDocument(): void {
                 <p v-if="deleteError" class="mt-2 text-sm text-destructive">
                     {{ deleteError }}
                 </p>
-            </section>
-        </div>
+            </DocumentExperienceSurface>
+        </DocumentExperienceFrame>
     </AppLayout>
 </template>
