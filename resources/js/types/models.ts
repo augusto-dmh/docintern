@@ -1,3 +1,5 @@
+import { type User } from './auth';
+
 export type Client = {
     id: number;
     tenant_id: string;
@@ -41,6 +43,7 @@ export type Document = {
     created_at: string;
     updated_at: string;
     matter?: Matter;
+    uploader?: User | null;
 };
 
 export type PaginatedData<T> = {

@@ -1,10 +1,12 @@
 <?php
 
 use App\Models\Client;
+use App\Models\Document;
 use App\Models\Matter;
 use App\Models\Tenant;
 use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;
+use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Permission\PermissionRegistrar;
 
 beforeEach(function () {
@@ -82,13 +84,23 @@ test('matter show page can be rendered', function () {
         'tenant_id' => $tenant->id,
         'client_id' => $client->id,
     ]);
+    $document = Document::factory()->create([
+        'tenant_id' => $tenant->id,
+        'matter_id' => $matter->id,
+        'uploaded_by' => $user->id,
+    ]);
+
     tenancy()->initialize($tenant);
 
-    $response = $this->actingAs($user)
+    $this->actingAs($user)
         ->withHeaders(['X-Tenant-ID' => $tenant->id])
-        ->get(route('matters.show', $matter));
-
-    $response->assertSuccessful();
+        ->get(route('matters.show', $matter))
+        ->assertSuccessful()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('matters/Show')
+            ->where('matter.id', $matter->id)
+            ->where('matter.documents.0.id', $document->id)
+        );
 });
 
 test('matter edit page can be rendered', function () {
