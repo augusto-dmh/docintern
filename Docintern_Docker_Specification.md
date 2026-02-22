@@ -235,7 +235,7 @@ RUN apk add --no-cache \
     && ln -sf /usr/bin/php83 /usr/bin/php
 
 EXPOSE 5173
-CMD ["sh", "-lc", "if [ ! -x node_modules/.bin/vite ]; then npm install; fi && npm run dev -- --host 0.0.0.0"]
+CMD ["sh", "-lc", "mkdir -p node_modules && chown -R node:node node_modules public && su node -s /bin/sh -c 'if [ ! -x node_modules/.bin/vite ]; then npm install; fi && npm run dev -- --host 0.0.0.0'"]
 ```
 
 ### docker-compose.yaml — Phase 1
