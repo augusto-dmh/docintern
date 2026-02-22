@@ -20,6 +20,11 @@ return [
         'localhost',
     ],
 
+    'tenant_context' => [
+        'header' => 'X-Tenant-ID',
+        'session_key' => 'active_tenant_id',
+    ],
+
     /**
      * Tenancy bootstrappers are executed when tenancy is initialized.
      * Their responsibility is making Laravel features tenant-aware.
