@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\Documents\StoreDocumentRequest;
 use App\Http\Requests\Documents\UpdateDocumentRequest;
+use App\Models\AuditLog;
 use App\Models\Document;
 use App\Models\Matter;
 use App\Models\User;
@@ -69,9 +70,18 @@ class DocumentController extends Controller
         $this->authorize('view', $document);
 
         $this->logDocumentAction($document, $request, 'viewed');
+        $document->load('matter', 'uploader');
+        $recentActivity = $document->auditLogs()
+            ->with('user:id,name')
+            ->latest()
+            ->limit(8)
+            ->get()
+            ->map(fn (AuditLog $auditLog): array => $this->formatAuditLog($auditLog))
+            ->values();
 
         return Inertia::render('documents/Show', [
-            'document' => $document->load('matter', 'uploader'),
+            'document' => $document,
+            'recentActivity' => $recentActivity,
             'documentExperience' => DocumentExperienceGuardrails::inertiaPayload(),
         ]);
     }
@@ -128,5 +138,28 @@ class DocumentController extends Controller
                 'user_agent' => $request->userAgent(),
             ],
         ]);
+    }
+
+    /**
+     * @return array{id: int, action: string, created_at: string, user: array{id: int, name: string}|null, ip_address: string|null}
+     */
+    protected function formatAuditLog(AuditLog $auditLog): array
+    {
+        $metadata = is_array($auditLog->metadata) ? $auditLog->metadata : [];
+
+        return [
+            'id' => $auditLog->id,
+            'action' => $auditLog->action,
+            'created_at' => $auditLog->created_at?->toISOString() ?? now()->toISOString(),
+            'user' => $auditLog->user
+                ? [
+                    'id' => $auditLog->user->id,
+                    'name' => $auditLog->user->name,
+                ]
+                : null,
+            'ip_address' => is_string($metadata['ip_address'] ?? null)
+                ? $metadata['ip_address']
+                : null,
+        ];
     }
 }
