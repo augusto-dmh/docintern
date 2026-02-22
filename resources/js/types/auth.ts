@@ -10,17 +10,24 @@ export type User = {
     [key: string]: unknown;
 };
 
-export type Auth = {
-    user: User;
-    roles: string[];
-    permissions: string[];
-};
-
 export type Tenant = {
     id: string;
     name: string;
     slug: string;
     logo_url: string | null;
+};
+
+export type TenantContext = {
+    canSelect: boolean;
+    activeTenantId: string | null;
+    activeTenant: Pick<Tenant, 'id' | 'name' | 'slug'> | null;
+};
+
+export type Auth = {
+    user: User;
+    roles: string[];
+    permissions: string[];
+    isSuperAdmin: boolean;
 };
 
 export type TwoFactorConfigContent = {
