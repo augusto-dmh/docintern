@@ -29,7 +29,18 @@ export type Matter = {
 
 export type MatterStatus = 'open' | 'closed' | 'on_hold';
 
-export type DocumentStatus = 'uploaded' | 'ready_for_review' | 'approved';
+export type DocumentStatus =
+    | 'uploaded'
+    | 'scanning'
+    | 'scan_passed'
+    | 'scan_failed'
+    | 'extracting'
+    | 'extraction_failed'
+    | 'classifying'
+    | 'classification_failed'
+    | 'ready_for_review'
+    | 'reviewed'
+    | 'approved';
 
 export type Document = {
     id: number;

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Events\DocumentProcessingEvent;
 use App\Models\Document;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -41,8 +42,15 @@ class DocumentStatusTransitionService
         array $metadata = [],
     ): Document
     {
-        /** @var Document $updatedDocument */
-        $updatedDocument = DB::transaction(function () use ($document, $toStatus, $consumerName, $messageId, $metadata): Document {
+        /**
+         * @var array{
+         *     document: Document,
+         *     message_id: string,
+         *     trace_id: string,
+         *     metadata: array<string, mixed>
+         * } $transitionResult
+         */
+        $transitionResult = DB::transaction(function () use ($document, $toStatus, $consumerName, $messageId, $metadata): array {
             /** @var Document $lockedDocument */
             $lockedDocument = Document::query()
                 ->whereKey($document->id)
@@ -59,6 +67,10 @@ class DocumentStatusTransitionService
 
             $traceId = $this->ensureProcessingTraceId($lockedDocument);
             $resolvedMessageId = $messageId ?? (string) Str::uuid();
+            $eventMetadata = array_merge($metadata, [
+                'from_status' => $fromStatus,
+                'to_status' => $toStatus,
+            ]);
 
             $lockedDocument->update([
                 'status' => $toStatus,
@@ -73,16 +85,29 @@ class DocumentStatusTransitionService
                 $fromStatus,
                 $toStatus,
                 $traceId,
-                array_merge($metadata, [
-                    'from_status' => $fromStatus,
-                    'to_status' => $toStatus,
-                ]),
+                $eventMetadata,
             );
 
-            return $lockedDocument->fresh();
+            return [
+                'document' => $lockedDocument->fresh(),
+                'message_id' => $resolvedMessageId,
+                'trace_id' => $traceId,
+                'metadata' => $eventMetadata,
+            ];
         });
 
-        return $updatedDocument;
+        event(new DocumentProcessingEvent(
+            messageId: $transitionResult['message_id'],
+            traceId: $transitionResult['trace_id'],
+            tenantId: $transitionResult['document']->tenant_id,
+            documentId: $transitionResult['document']->id,
+            event: 'document.status.transitioned',
+            timestamp: now()->toImmutable(),
+            metadata: $transitionResult['metadata'],
+            retryCount: 0,
+        ));
+
+        return $transitionResult['document'];
     }
 
     public function canTransition(string $fromStatus, string $toStatus): bool
