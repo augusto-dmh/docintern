@@ -1,4 +1,12 @@
 <script setup lang="ts">
+import { computed } from 'vue';
+import {
+    documentStatusToneClass,
+    documentSurfaceClass,
+    documentTypographyClass,
+} from '@/lib/document-experience';
+import type { DocumentExperienceGuardrails } from '@/types';
+
 export type UploadStatus = 'uploading' | 'completed' | 'failed';
 
 export type UploadProgressItem = {
@@ -9,10 +17,27 @@ export type UploadProgressItem = {
 };
 
 type Props = {
+    documentExperience: DocumentExperienceGuardrails;
     items: UploadProgressItem[];
 };
 
-defineProps<Props>();
+const props = defineProps<Props>();
+
+const trackerClass = computed(() =>
+    documentSurfaceClass(
+        props.documentExperience,
+        { reveal: false },
+        'space-y-3 p-4',
+    ),
+);
+
+const trackerTitleClass = computed(() =>
+    documentTypographyClass(
+        props.documentExperience,
+        'title',
+        'text-sm font-semibold',
+    ),
+);
 
 function formatSize(size: number): string {
     const sizeInMb = size / (1024 * 1024);
@@ -37,21 +62,13 @@ function statusLabel(status: UploadStatus): string {
 }
 
 function statusClass(status: UploadStatus): string {
-    if (status === 'completed') {
-        return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300';
-    }
-
-    if (status === 'failed') {
-        return 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300';
-    }
-
-    return 'bg-[var(--doc-seal)]/15 text-[var(--doc-seal)]';
+    return documentStatusToneClass(status);
 }
 </script>
 
 <template>
-    <div v-if="items.length" class="doc-surface space-y-3 p-4">
-        <h3 class="doc-title text-sm font-semibold">Transfer progress</h3>
+    <div v-if="items.length" :class="trackerClass">
+        <h3 :class="trackerTitleClass">Transfer progress</h3>
 
         <ul class="space-y-3">
             <li
