@@ -9,7 +9,6 @@ use Illuminate\Support\ServiceProvider;
 use Stancl\JobPipeline\JobPipeline;
 use Stancl\Tenancy\Events;
 use Stancl\Tenancy\Listeners;
-use Stancl\Tenancy\Middleware\InitializeTenancyByRequestData;
 
 class TenancyServiceProvider extends ServiceProvider
 {
@@ -52,14 +51,7 @@ class TenancyServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        $this->configureIdentification();
         $this->bootEvents();
-    }
-
-    protected function configureIdentification(): void
-    {
-        InitializeTenancyByRequestData::$header = 'X-Tenant-ID';
-        InitializeTenancyByRequestData::$queryParameter = null;
     }
 
     protected function bootEvents(): void
