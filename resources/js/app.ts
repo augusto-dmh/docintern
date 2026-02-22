@@ -24,5 +24,5 @@ createInertiaApp({
     },
 });
 
-// This will set light / dark mode on page load...
+// Enforce single, consistent workspace theme on page load.
 initializeTheme();

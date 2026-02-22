@@ -19,17 +19,14 @@ import {
     InputOTPSlot,
 } from '@/components/ui/input-otp';
 import { Spinner } from '@/components/ui/spinner';
-import { useAppearance } from '@/composables/useAppearance';
 import { useTwoFactorAuth } from '@/composables/useTwoFactorAuth';
-import type { TwoFactorConfigContent } from '@/types';
 import { confirm } from '@/routes/two-factor';
+import type { TwoFactorConfigContent } from '@/types';
 
 type Props = {
     requiresConfirmation: boolean;
     twoFactorEnabled: boolean;
 };
-
-const { resolvedAppearance } = useAppearance();
 
 const props = defineProps<Props>();
 const isOpen = defineModel<boolean>('isOpen');
@@ -110,13 +107,15 @@ watch(
 
 <template>
     <Dialog :open="isOpen" @update:open="isOpen = $event">
-        <DialogContent class="sm:max-w-md">
+        <DialogContent
+            class="rounded-2xl border-[var(--doc-border)] bg-[hsl(37_58%_97%)] sm:max-w-md"
+        >
             <DialogHeader class="flex items-center justify-center">
                 <div
-                    class="mb-3 w-auto rounded-full border border-border bg-card p-0.5 shadow-sm"
+                    class="mb-3 w-auto rounded-full border border-[var(--doc-border)] bg-[hsl(38_52%_96%)] p-0.5 shadow-sm"
                 >
                     <div
-                        class="relative overflow-hidden rounded-full border border-border bg-muted p-2.5"
+                        class="relative overflow-hidden rounded-full border border-[var(--doc-border)] bg-[hsl(36_46%_94%)] p-2.5"
                     >
                         <div
                             class="absolute inset-0 grid grid-cols-5 opacity-50"
@@ -124,7 +123,7 @@ watch(
                             <div
                                 v-for="i in 5"
                                 :key="`col-${i}`"
-                                class="border-r border-border last:border-r-0"
+                                class="border-r border-[var(--doc-border)] last:border-r-0"
                             />
                         </div>
                         <div
@@ -133,7 +132,7 @@ watch(
                             <div
                                 v-for="i in 5"
                                 :key="`row-${i}`"
-                                class="border-b border-border last:border-b-0"
+                                class="border-b border-[var(--doc-border)] last:border-b-0"
                             />
                         </div>
                         <ScanLine
@@ -172,12 +171,6 @@ watch(
                                     <div
                                         v-html="qrCodeSvg"
                                         class="flex aspect-square size-full items-center justify-center"
-                                        :style="{
-                                            filter:
-                                                resolvedAppearance === 'dark'
-                                                    ? 'invert(1) brightness(1.5)'
-                                                    : undefined,
-                                        }"
                                     />
                                 </div>
                             </div>
@@ -193,7 +186,7 @@ watch(
                             class="relative flex w-full items-center justify-center"
                         >
                             <div
-                                class="absolute inset-0 top-1/2 h-px w-full bg-border"
+                                class="absolute inset-0 top-1/2 h-px w-full bg-[var(--doc-border)]"
                             />
                             <span class="relative bg-card px-2 py-1"
                                 >or, enter the code manually</span

@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
+import DocumentController from '@/actions/App/Http/Controllers/DocumentController';
+import MatterController from '@/actions/App/Http/Controllers/MatterController';
 import DocumentEmptyState from '@/components/documents/DocumentEmptyState.vue';
 import DocumentExperienceFrame from '@/components/documents/DocumentExperienceFrame.vue';
 import DocumentExperienceSurface from '@/components/documents/DocumentExperienceSurface.vue';
@@ -16,8 +18,6 @@ import {
     type DocumentExperienceGuardrails,
     type Matter,
 } from '@/types';
-import DocumentController from '@/actions/App/Http/Controllers/DocumentController';
-import MatterController from '@/actions/App/Http/Controllers/MatterController';
 
 const props = defineProps<{
     matter: Matter;
