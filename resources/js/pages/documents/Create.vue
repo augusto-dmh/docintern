@@ -143,7 +143,7 @@ function submit(): void {
                             required
                             autocomplete="off"
                             placeholder="e.g. Retainer agreement"
-                            class="border-[var(--doc-border)] bg-[hsl(38_50%_98%)]"
+                            class="border-[var(--doc-border)] bg-card"
                         />
                         <InputError :message="form.errors.title" />
                     </div>
@@ -167,7 +167,7 @@ function submit(): void {
                         </div>
 
                         <div
-                            class="rounded-xl border border-[var(--doc-border)] bg-[hsl(38_58%_97%/0.8)] p-4"
+                            class="rounded-xl border border-[var(--doc-border)] bg-card/80 p-4"
                         >
                             <p
                                 class="doc-seal text-xs font-semibold tracking-[0.12em] uppercase"
@@ -191,7 +191,7 @@ function submit(): void {
                                     !canCreateDocuments ||
                                     !form.file
                                 "
-                                class="bg-[var(--doc-seal)] text-white hover:bg-[hsl(9_72%_30%)]"
+                                class="bg-[var(--doc-seal)] text-white hover:bg-primary/90"
                             >
                                 {{
                                     form.processing

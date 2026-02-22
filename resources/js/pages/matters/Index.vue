@@ -49,7 +49,7 @@ function matterStatusClass(status: Matter['status']): string {
                 <Button
                     v-if="canCreateMatters"
                     as-child
-                    class="bg-[var(--doc-seal)] text-white hover:bg-[hsl(9_72%_30%)]"
+                    class="bg-[var(--doc-seal)] text-white hover:bg-primary/90"
                 >
                     <Link :href="MatterController.create()">New matter</Link>
                 </Button>
@@ -130,7 +130,7 @@ function matterStatusClass(status: Matter['status']): string {
                     <table class="w-full text-sm">
                         <thead>
                             <tr
-                                class="doc-grid-line border-b bg-[hsl(37_38%_93%/0.75)]"
+                                class="doc-grid-line border-b bg-muted/75"
                             >
                                 <th
                                     class="px-4 py-3 text-left text-xs font-semibold tracking-[0.12em] uppercase"
@@ -237,7 +237,7 @@ function matterStatusClass(status: Matter['status']): string {
                         :class="
                             link.active
                                 ? 'border-[var(--doc-seal)] bg-[var(--doc-seal)] text-white'
-                                : 'bg-[hsl(37_38%_96%)] hover:bg-[hsl(37_38%_93%)]'
+                                : 'bg-[var(--doc-paper)] hover:bg-muted'
                         "
                     >
                         <span v-html="link.label" />

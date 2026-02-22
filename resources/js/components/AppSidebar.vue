@@ -27,7 +27,9 @@ import { type NavItem } from '@/types';
 import AppLogo from './AppLogo.vue';
 
 const page = usePage();
-const tenantContext = page.props.tenantContext;
+const tenantContext = page.props.tenantContext as
+    | { activeTenant?: { name: string } | null }
+    | undefined;
 
 const mainNavItems: NavItem[] = [
     {
@@ -83,7 +85,7 @@ const mainNavItems: NavItem[] = [
         <SidebarFooter class="border-t border-[var(--doc-border)]/70 px-3 py-3">
             <p class="doc-subtle px-2 text-[11px] tracking-[0.11em] uppercase">
                 {{
-                    tenantContext.activeTenant
+                    tenantContext?.activeTenant
                         ? `Context: ${tenantContext.activeTenant.name}`
                         : 'Tenant-scoped security'
                 }}

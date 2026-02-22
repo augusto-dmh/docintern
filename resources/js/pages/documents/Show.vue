@@ -101,7 +101,7 @@ function activityLabel(action: string): string {
             <template #actions>
                 <Button
                     as-child
-                    class="bg-[var(--doc-seal)] text-white hover:bg-[hsl(9_72%_30%)]"
+                    class="bg-[var(--doc-seal)] text-white hover:bg-primary/90"
                 >
                     <Link :href="DocumentController.download(document)">
                         Download

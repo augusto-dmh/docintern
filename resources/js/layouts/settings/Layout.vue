@@ -67,7 +67,7 @@ const { isCurrentUrl } = useCurrentUrl();
                         :class="
                             isCurrentUrl(item.href)
                                 ? 'bg-[var(--doc-seal)]/12 text-[var(--doc-seal)]'
-                                : 'text-[hsl(24_26%_23%)] hover:bg-[hsl(39_45%_93%)]'
+                                : 'text-sidebar-foreground hover:bg-muted'
                         "
                     >
                         {{ item.title }}

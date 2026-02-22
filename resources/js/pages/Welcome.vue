@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, usePage } from '@inertiajs/vue3';
 import { ArrowRight, ShieldCheck } from 'lucide-vue-next';
 import { dashboard, login, register } from '@/routes';
+
+const appName = usePage().props.name ?? 'Docintern';
 
 withDefaults(
     defineProps<{
@@ -17,30 +19,30 @@ withDefaults(
     <Head title="Welcome" />
 
     <div
-        class="min-h-screen bg-[hsl(38_44%_95%)] p-6 text-[hsl(24_31%_16%)] lg:p-10"
+        class="min-h-screen bg-background p-6 text-foreground lg:p-10"
     >
         <div class="mx-auto flex max-w-6xl flex-col gap-8">
             <header class="flex items-center justify-between">
-                <p class="doc-title text-2xl font-semibold">Docintern</p>
+                <p class="doc-title text-2xl font-semibold">{{ appName }}</p>
                 <nav class="flex items-center gap-3">
                     <Link
                         v-if="$page.props.auth.user"
                         :href="dashboard()"
-                        class="rounded-full border border-[var(--doc-border)] px-4 py-2 text-sm font-medium hover:bg-[hsl(38_48%_91%)]"
+                        class="rounded-full border border-[var(--doc-border)] px-4 py-2 text-sm font-medium hover:bg-accent"
                     >
                         Dashboard
                     </Link>
                     <template v-else>
                         <Link
                             :href="login()"
-                            class="rounded-full border border-[var(--doc-border)] px-4 py-2 text-sm font-medium hover:bg-[hsl(38_48%_91%)]"
+                            class="rounded-full border border-[var(--doc-border)] px-4 py-2 text-sm font-medium hover:bg-accent"
                         >
                             Log in
                         </Link>
                         <Link
                             v-if="canRegister"
                             :href="register()"
-                            class="rounded-full bg-[var(--doc-seal)] px-4 py-2 text-sm font-medium text-white hover:bg-[hsl(9_72%_30%)]"
+                            class="rounded-full bg-[var(--doc-seal)] px-4 py-2 text-sm font-medium text-white hover:bg-primary/90"
                         >
                             Register
                         </Link>
@@ -70,7 +72,7 @@ withDefaults(
                             :href="
                                 $page.props.auth.user ? dashboard() : login()
                             "
-                            class="inline-flex items-center gap-2 rounded-full bg-[var(--doc-seal)] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[hsl(9_72%_30%)]"
+                            class="inline-flex items-center gap-2 rounded-full bg-[var(--doc-seal)] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-primary/90"
                         >
                             {{
                                 $page.props.auth.user

@@ -145,7 +145,7 @@ const breadcrumbItems: BreadcrumbItem[] = [
             v-if="canDeleteClients"
             class="workspace-panel workspace-fade-up workspace-delay-2 mt-6 border-[hsl(3_68%_50%/0.35)] p-6"
         >
-            <h2 class="doc-title text-xl font-semibold text-[hsl(4_62%_35%)]">
+            <h2 class="doc-title text-xl font-semibold text-destructive">
                 Remove client
             </h2>
             <p class="doc-subtle mt-2 text-sm">

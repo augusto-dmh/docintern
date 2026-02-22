@@ -8,7 +8,7 @@ const tenant = usePage().props.tenant;
 
 <template>
     <div
-        class="flex aspect-square size-9 items-center justify-center rounded-xl border border-[var(--doc-border)] bg-[hsl(38_52%_96%)] text-[var(--doc-seal)] shadow-sm"
+        class="flex aspect-square size-9 items-center justify-center rounded-xl border border-[var(--doc-border)] bg-[var(--doc-paper)] text-[var(--doc-seal)] shadow-sm"
     >
         <img
             v-if="tenant?.logo_url"
@@ -23,14 +23,14 @@ const tenant = usePage().props.tenant;
     </div>
     <div class="ml-2 grid flex-1 text-left text-sm leading-tight">
         <span
-            class="doc-title mb-0.5 truncate text-sm font-semibold text-[hsl(20_34%_18%)]"
+            class="doc-title mb-0.5 truncate text-sm font-semibold text-foreground"
         >
             {{ tenant?.name ?? appName ?? 'Docintern' }}
         </span>
         <span
             class="doc-subtle truncate text-[11px] tracking-[0.12em] uppercase"
         >
-            Legal Operations
+            {{ tenant?.slug ?? 'Workspace' }}
         </span>
     </div>
 </template>

@@ -150,7 +150,7 @@ class DocumentController extends Controller
         return [
             'id' => $auditLog->id,
             'action' => $auditLog->action,
-            'created_at' => $auditLog->created_at?->toISOString() ?? now()->toISOString(),
+            'created_at' => $auditLog->created_at->toISOString(),
             'user' => $auditLog->user
                 ? [
                     'id' => $auditLog->user->id,

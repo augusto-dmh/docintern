@@ -132,50 +132,8 @@
     --doc-border: hsl(31 22% 75%);
     --doc-shadow: 0 16px 48px -30px hsl(24 28% 18% / 0.45);
     --doc-animation: 420ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.dark {
-    --background: hsl(38 44% 95%);
-    --foreground: hsl(24 31% 16%);
-    --card: hsl(38 55% 97%);
-    --card-foreground: hsl(24 31% 16%);
-    --popover: hsl(38 55% 97%);
-    --popover-foreground: hsl(24 31% 16%);
-    --primary: hsl(9 72% 34%);
-    --primary-foreground: hsl(0 0% 100%);
-    --secondary: hsl(38 32% 89%);
-    --secondary-foreground: hsl(24 31% 20%);
-    --muted: hsl(39 31% 92%);
-    --muted-foreground: hsl(27 15% 40%);
-    --accent: hsl(38 45% 90%);
-    --accent-foreground: hsl(24 30% 18%);
-    --destructive: hsl(3 74% 52%);
-    --destructive-foreground: hsl(0 0% 100%);
-    --border: hsl(30 24% 77%);
-    --input: hsl(32 28% 84%);
-    --ring: hsl(9 72% 34%);
-    --chart-1: hsl(220 70% 50%);
-    --chart-2: hsl(160 60% 45%);
-    --chart-3: hsl(30 80% 55%);
-    --chart-4: hsl(280 65% 60%);
-    --chart-5: hsl(340 75% 55%);
-    --sidebar-background: hsl(36 34% 92%);
-    --sidebar-foreground: hsl(24 28% 22%);
-    --sidebar-primary: hsl(9 72% 34%);
-    --sidebar-primary-foreground: hsl(0 0% 100%);
-    --sidebar-accent: hsl(39 45% 88%);
-    --sidebar-accent-foreground: hsl(21 35% 22%);
-    --sidebar-border: hsl(31 25% 75%);
-    --sidebar-ring: hsl(9 72% 34%);
-    --sidebar: hsl(36 34% 92%);
-    --doc-paper: hsl(39 46% 96%);
-    --doc-paper-strong: hsl(35 44% 92%);
-    --doc-ink: hsl(24 33% 15%);
-    --doc-muted: hsl(27 15% 40%);
-    --doc-seal: hsl(9 72% 34%);
-    --doc-border: hsl(31 22% 75%);
-    --doc-shadow: 0 16px 48px -30px hsl(24 28% 18% / 0.45);
-    --doc-animation: 420ms cubic-bezier(0.16, 1, 0.3, 1);
+    --doc-glow-warm: hsl(45 75% 89% / 0.35);
+    --doc-glow-cool: hsl(33 68% 88% / 0.35);
 }
 
 @layer base {
@@ -187,12 +145,12 @@
         background-image:
             radial-gradient(
                 circle at 92% 2%,
-                hsl(45 75% 89% / 0.35),
+                var(--doc-glow-warm),
                 transparent 36%
             ),
             radial-gradient(
                 circle at 4% 98%,
-                hsl(33 68% 88% / 0.35),
+                var(--doc-glow-cool),
                 transparent 38%
             );
     }

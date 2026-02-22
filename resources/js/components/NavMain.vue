@@ -30,7 +30,7 @@ const { isCurrentUrl } = useCurrentUrl();
                     as-child
                     :is-active="isCurrentUrl(item.href)"
                     :tooltip="item.title"
-                    class="rounded-xl px-2.5 py-2.5 text-[hsl(22_25%_23%)] transition hover:bg-[hsl(38_45%_93%)] hover:text-[hsl(16_40%_25%)] data-[active=true]:bg-[var(--doc-seal)]/12 data-[active=true]:text-[var(--doc-seal)]"
+                    class="rounded-xl px-2.5 py-2.5 text-sidebar-foreground transition hover:bg-muted hover:text-accent-foreground data-[active=true]:bg-[var(--doc-seal)]/12 data-[active=true]:text-[var(--doc-seal)]"
                 >
                     <Link :href="item.href">
                         <component :is="item.icon" />
