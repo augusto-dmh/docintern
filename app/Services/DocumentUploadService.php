@@ -13,14 +13,14 @@ use RuntimeException;
 
 class DocumentUploadService
 {
-    public function upload(UploadedFile $file, Matter $matter, User $user): Document
+    public function upload(UploadedFile $file, Matter $matter, User $user, string $title): Document
     {
-        return DB::transaction(function () use ($file, $matter, $user): Document {
+        return DB::transaction(function () use ($file, $matter, $user, $title): Document {
             $document = Document::query()->create([
                 'tenant_id' => $matter->tenant_id,
                 'matter_id' => $matter->id,
                 'uploaded_by' => $user->id,
-                'title' => pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME),
+                'title' => $title,
                 'file_path' => 'pending',
                 'file_name' => $file->getClientOriginalName(),
                 'mime_type' => $file->getClientMimeType(),
