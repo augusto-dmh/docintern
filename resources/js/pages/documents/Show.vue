@@ -2,12 +2,19 @@
 import { Head, Link, usePage } from '@inertiajs/vue3';
 import DocumentController from '@/actions/App/Http/Controllers/DocumentController';
 import MatterController from '@/actions/App/Http/Controllers/MatterController';
+import DocumentExperienceFrame from '@/components/documents/DocumentExperienceFrame.vue';
+import DocumentExperienceSurface from '@/components/documents/DocumentExperienceSurface.vue';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { type BreadcrumbItem, type Document } from '@/types';
+import {
+    type BreadcrumbItem,
+    type Document,
+    type DocumentExperienceGuardrails,
+} from '@/types';
 
 const props = defineProps<{
     document: Document;
+    documentExperience: DocumentExperienceGuardrails;
 }>();
 
 const permissions = usePage().props.auth.permissions;
@@ -46,37 +53,32 @@ function formatFileSize(bytes: number): string {
     <AppLayout :breadcrumbs="breadcrumbItems">
         <Head :title="document.title" />
 
-        <div class="documents-experience rounded-3xl p-6 sm:p-8">
-            <section class="doc-hero doc-fade-up p-6 sm:p-8">
-                <p
-                    class="doc-seal text-xs font-semibold tracking-[0.18em] uppercase"
+        <DocumentExperienceFrame
+            :document-experience="documentExperience"
+            eyebrow="Case document"
+            :title="document.title"
+        >
+            <template #actions>
+                <Button
+                    as-child
+                    class="bg-[var(--doc-seal)] text-white hover:bg-[hsl(9_72%_30%)]"
                 >
-                    Case document
-                </p>
-                <h1 class="doc-title mt-2 text-3xl font-semibold sm:text-4xl">
-                    {{ document.title }}
-                </h1>
-
-                <div class="mt-5 flex flex-wrap items-center gap-3">
-                    <Button
-                        as-child
-                        class="bg-[var(--doc-seal)] text-white hover:bg-[hsl(9_72%_30%)]"
+                    <Link :href="DocumentController.download(document)"
+                        >Download</Link
                     >
-                        <Link :href="DocumentController.download(document)"
-                            >Download</Link
-                        >
-                    </Button>
+                </Button>
 
-                    <Button v-if="canEditDocuments" as-child variant="outline">
-                        <Link :href="DocumentController.edit(document)"
-                            >Edit metadata</Link
-                        >
-                    </Button>
-                </div>
-            </section>
+                <Button v-if="canEditDocuments" as-child variant="outline">
+                    <Link :href="DocumentController.edit(document)"
+                        >Edit metadata</Link
+                    >
+                </Button>
+            </template>
 
-            <section
-                class="doc-surface doc-fade-up doc-delay-1 mt-6 p-6 sm:p-8"
+            <DocumentExperienceSurface
+                :document-experience="documentExperience"
+                :delay="1"
+                class="mt-6 p-6 sm:p-8"
             >
                 <dl class="grid gap-5 sm:grid-cols-2">
                     <div>
@@ -163,7 +165,7 @@ function formatFileSize(bytes: number): string {
                         </dd>
                     </div>
                 </dl>
-            </section>
-        </div>
+            </DocumentExperienceSurface>
+        </DocumentExperienceFrame>
     </AppLayout>
 </template>

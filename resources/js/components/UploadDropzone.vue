@@ -1,7 +1,13 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import {
+    documentSurfaceClass,
+    documentTypographyClass,
+} from '@/lib/document-experience';
+import type { DocumentExperienceGuardrails } from '@/types';
 
 type Props = {
+    documentExperience: DocumentExperienceGuardrails;
     disabled?: boolean;
     serverError?: string;
 };
@@ -47,6 +53,54 @@ const selectedFileDetails = computed(() => {
 
     return `${Math.max(1, Math.round(size / 1024))} KB`;
 });
+
+const dropzoneClass = computed(() =>
+    documentSurfaceClass(
+        props.documentExperience,
+        { reveal: false },
+        'group relative cursor-pointer overflow-hidden p-6 transition',
+    ),
+);
+
+const selectedFileClass = computed(() =>
+    documentSurfaceClass(
+        props.documentExperience,
+        { reveal: false },
+        'flex items-center justify-between gap-3 px-4 py-3',
+    ),
+);
+
+const dropzoneTitleClass = computed(() =>
+    documentTypographyClass(
+        props.documentExperience,
+        'title',
+        'text-lg font-semibold',
+    ),
+);
+
+const dropzoneSubtleClass = computed(() =>
+    documentTypographyClass(props.documentExperience, 'subtle'),
+);
+
+const selectedFileNameClass = computed(() =>
+    documentTypographyClass(
+        props.documentExperience,
+        'title',
+        'text-sm font-semibold',
+    ),
+);
+
+const selectedFileSizeClass = computed(() =>
+    documentTypographyClass(props.documentExperience, 'subtle', 'text-xs'),
+);
+
+const removeButtonClass = computed(() =>
+    documentTypographyClass(
+        props.documentExperience,
+        'seal',
+        'text-sm font-medium hover:underline',
+    ),
+);
 
 function openFilePicker(): void {
     if (props.disabled) {
@@ -154,12 +208,14 @@ function clearSelection(): void {
             role="button"
             tabindex="0"
             :aria-disabled="disabled"
-            class="doc-surface group relative cursor-pointer overflow-hidden p-6 transition"
-            :class="{
-                'ring-2 ring-[var(--doc-seal)]/25': isDragActive,
-                'opacity-60': disabled,
-                'hover:-translate-y-0.5 hover:shadow-lg': !disabled,
-            }"
+            :class="[
+                dropzoneClass,
+                {
+                    'ring-2 ring-[var(--doc-seal)]/25': isDragActive,
+                    'opacity-60': disabled,
+                    'hover:-translate-y-0.5 hover:shadow-lg': !disabled,
+                },
+            ]"
             @click="openFilePicker"
             @keydown.enter.prevent="openFilePicker"
             @keydown.space.prevent="openFilePicker"
@@ -171,29 +227,31 @@ function clearSelection(): void {
                 class="absolute inset-y-0 left-0 w-1 bg-[var(--doc-seal)]/70"
             />
 
-            <p class="doc-title text-lg font-semibold">Drop file to archive</p>
-            <p class="doc-subtle mt-2 text-sm">
+            <p :class="dropzoneTitleClass">Drop file to archive</p>
+            <p :class="[dropzoneSubtleClass, 'mt-2 text-sm']">
                 PDF, Word, Excel, JPG, PNG up to 100MB.
             </p>
-            <p class="doc-subtle mt-1 text-xs tracking-[0.14em] uppercase">
+            <p
+                :class="[
+                    dropzoneSubtleClass,
+                    'mt-1 text-xs tracking-[0.14em] uppercase',
+                ]"
+            >
                 or click to choose a single file
             </p>
         </div>
 
-        <div
-            v-if="selectedFile"
-            class="doc-surface flex items-center justify-between gap-3 px-4 py-3"
-        >
+        <div v-if="selectedFile" :class="selectedFileClass">
             <div>
-                <p class="doc-title text-sm font-semibold">
+                <p :class="selectedFileNameClass">
                     {{ selectedFile.name }}
                 </p>
-                <p class="doc-subtle text-xs">{{ selectedFileDetails }}</p>
+                <p :class="selectedFileSizeClass">{{ selectedFileDetails }}</p>
             </div>
 
             <button
                 type="button"
-                class="doc-seal text-sm font-medium hover:underline"
+                :class="removeButtonClass"
                 @click="clearSelection"
             >
                 Remove

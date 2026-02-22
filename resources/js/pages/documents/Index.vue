@@ -2,15 +2,20 @@
 import { Head, Link, usePage } from '@inertiajs/vue3';
 import DocumentController from '@/actions/App/Http/Controllers/DocumentController';
 import MatterController from '@/actions/App/Http/Controllers/MatterController';
+import DocumentExperienceFrame from '@/components/documents/DocumentExperienceFrame.vue';
+import DocumentExperienceSurface from '@/components/documents/DocumentExperienceSurface.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { documentStatusToneClass } from '@/lib/document-experience';
 import {
     type BreadcrumbItem,
     type Document,
+    type DocumentExperienceGuardrails,
     type PaginatedData,
 } from '@/types';
 
 defineProps<{
     documents: PaginatedData<Document>;
+    documentExperience: DocumentExperienceGuardrails;
 }>();
 
 const permissions = usePage().props.auth.permissions;
@@ -42,15 +47,7 @@ function formatFileSize(bytes: number): string {
 }
 
 function statusClass(status: Document['status']): string {
-    if (status === 'approved') {
-        return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300';
-    }
-
-    if (status === 'ready_for_review') {
-        return 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300';
-    }
-
-    return 'bg-[var(--doc-seal)]/15 text-[var(--doc-seal)]';
+    return documentStatusToneClass(status);
 }
 </script>
 
@@ -58,24 +55,16 @@ function statusClass(status: Document['status']): string {
     <AppLayout :breadcrumbs="breadcrumbItems">
         <Head title="Documents" />
 
-        <div class="documents-experience rounded-3xl p-6 sm:p-8">
-            <section class="doc-hero doc-fade-up p-6 sm:p-8">
-                <p
-                    class="doc-seal text-xs font-semibold tracking-[0.18em] uppercase"
-                >
-                    Private repository
-                </p>
-                <h1 class="doc-title mt-2 text-3xl font-semibold sm:text-4xl">
-                    Document ledger
-                </h1>
-                <p class="doc-subtle mt-3 max-w-3xl text-sm sm:text-base">
-                    Searchable matter documents with immutable storage and
-                    traceable activity.
-                </p>
-            </section>
-
-            <section
-                class="doc-surface doc-fade-up doc-delay-1 mt-6 overflow-hidden"
+        <DocumentExperienceFrame
+            :document-experience="documentExperience"
+            eyebrow="Private repository"
+            title="Document ledger"
+            description="Searchable matter documents with immutable storage and traceable activity."
+        >
+            <DocumentExperienceSurface
+                :document-experience="documentExperience"
+                :delay="1"
+                class="mt-6 overflow-hidden"
             >
                 <div class="overflow-x-auto">
                     <table class="min-w-full text-sm">
@@ -210,7 +199,7 @@ function statusClass(status: Document['status']): string {
                         </tbody>
                     </table>
                 </div>
-            </section>
+            </DocumentExperienceSurface>
 
             <nav
                 v-if="documents.last_page > 1"
@@ -237,6 +226,6 @@ function statusClass(status: Document['status']): string {
                     />
                 </template>
             </nav>
-        </div>
+        </DocumentExperienceFrame>
     </AppLayout>
 </template>

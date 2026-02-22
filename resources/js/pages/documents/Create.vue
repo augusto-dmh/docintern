@@ -3,6 +3,8 @@ import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import DocumentController from '@/actions/App/Http/Controllers/DocumentController';
 import MatterController from '@/actions/App/Http/Controllers/MatterController';
+import DocumentExperienceFrame from '@/components/documents/DocumentExperienceFrame.vue';
+import DocumentExperienceSurface from '@/components/documents/DocumentExperienceSurface.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,10 +12,15 @@ import { Label } from '@/components/ui/label';
 import UploadDropzone from '@/components/UploadDropzone.vue';
 import UploadProgressTracker from '@/components/UploadProgressTracker.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { type BreadcrumbItem, type Matter } from '@/types';
+import {
+    type BreadcrumbItem,
+    type DocumentExperienceGuardrails,
+    type Matter,
+} from '@/types';
 
 const props = defineProps<{
     matter: Matter;
+    documentExperience: DocumentExperienceGuardrails;
 }>();
 
 const permissions = usePage().props.auth.permissions;
@@ -92,24 +99,20 @@ function submit(): void {
     <AppLayout :breadcrumbs="breadcrumbItems">
         <Head title="Upload Document" />
 
-        <div class="documents-experience rounded-3xl p-6 sm:p-8">
-            <section class="doc-hero doc-fade-up p-6 sm:p-8">
-                <p
-                    class="doc-seal text-xs font-semibold tracking-[0.18em] uppercase"
-                >
-                    Matter archive
-                </p>
-                <h1 class="doc-title mt-2 text-3xl font-semibold sm:text-4xl">
-                    Upload legal document
-                </h1>
-                <p class="doc-subtle mt-3 max-w-2xl text-sm sm:text-base">
-                    Add supporting files to <strong>{{ matter.title }}</strong>
-                    with private S3 storage and audit tracking.
-                </p>
-            </section>
+        <DocumentExperienceFrame
+            :document-experience="documentExperience"
+            eyebrow="Matter archive"
+            title="Upload legal document"
+        >
+            <template #description>
+                Add supporting files to <strong>{{ matter.title }}</strong> with
+                private S3 storage and audit tracking.
+            </template>
 
-            <section
-                class="doc-surface doc-fade-up doc-delay-1 mt-6 p-6 sm:p-8"
+            <DocumentExperienceSurface
+                :document-experience="documentExperience"
+                :delay="1"
+                class="mt-6 p-6 sm:p-8"
             >
                 <form class="space-y-6" @submit.prevent="submit">
                     <div class="grid gap-2">
@@ -136,12 +139,16 @@ function submit(): void {
                             >File</Label
                         >
                         <UploadDropzone
+                            :document-experience="documentExperience"
                             :disabled="form.processing"
                             :server-error="form.errors.file"
                             @file-selected="onFileSelected"
                             @file-cleared="onFileCleared"
                         />
-                        <UploadProgressTracker :items="uploadItems" />
+                        <UploadProgressTracker
+                            :document-experience="documentExperience"
+                            :items="uploadItems"
+                        />
                     </div>
 
                     <div class="flex flex-wrap items-center gap-3">
@@ -168,7 +175,7 @@ function submit(): void {
                         </Button>
                     </div>
                 </form>
-            </section>
-        </div>
+            </DocumentExperienceSurface>
+        </DocumentExperienceFrame>
     </AppLayout>
 </template>
