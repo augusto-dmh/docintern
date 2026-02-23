@@ -16,6 +16,17 @@ This document specifies the exact Docker infrastructure needed at each phase of 
 - Local dev uses bind mounts for hot-reload. Production uses multi-stage builds with minimal images.
 - Healthchecks are defined for every service from the start.
 
+### Current Repository Defaults (Post-Phase-3 Infra Hardening)
+
+This document contains historical per-phase snapshots. If a sample conflicts with live repository files, use `docker-compose.yaml` and the service Dockerfiles as source of truth.
+
+Current development defaults include:
+
+- `app` bootstraps Composer dependencies on startup when `vendor/autoload.php` is missing.
+- `vendor_data` is a shared named volume mounted by `app`, `worker`, and `scheduler`.
+- `app` healthcheck validates PHP-FPM config (`php-fpm -t`) instead of relying on `php-fpm-healthcheck`.
+- `node` runs as the non-root `node` user to avoid Wayfinder and generated-file permission failures.
+
 ---
 
 ## 2. Directory Structure (Final State)
@@ -69,6 +80,8 @@ networks:
     driver: bridge
 
 volumes:
+  vendor_data:
+    driver: local
   mysql_data:
     driver: local
   redis_data:
