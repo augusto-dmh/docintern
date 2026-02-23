@@ -4,10 +4,48 @@
 
 All commands run inside Docker containers. Use `make` shortcuts or `docker compose exec`.
 
-If the node container is not running (e.g. `npm` deps not installed), use:
+Start or refresh the stack with:
 
 ```bash
-docker compose exec node sh -c "npm install && npm run build"
+docker compose up -d --build
+```
+
+The `app` service bootstraps Composer dependencies on startup if `vendor/autoload.php` is missing.
+
+If the node container is not running, use:
+
+```bash
+docker compose run --rm node sh -lc "npm install && npm run build"
+```
+
+Run frontend commands in the `node` service as the default `node` user (do not use `-u root`), to avoid Wayfinder file ownership issues.
+
+## Docker Troubleshooting
+
+### `vendor/autoload.php` missing in `app`
+
+```bash
+docker compose logs -f app
+```
+
+Wait for Composer bootstrap to complete, or run:
+
+```bash
+docker compose exec app composer install --no-interaction --prefer-dist
+```
+
+### Wayfinder permission denied from Vite startup
+
+If generated files were created as root in a prior run, repair ownership once:
+
+```bash
+docker compose exec -u root node sh -lc "chown -R node:node /var/www/html/resources/js/actions /var/www/html/resources/js/routes /var/www/html/bootstrap/cache"
+```
+
+Then start dev server normally:
+
+```bash
+docker compose exec node npm run dev
 ```
 
 ## Backend
