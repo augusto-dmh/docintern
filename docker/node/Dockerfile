@@ -24,5 +24,10 @@ RUN apk add --no-cache \
     php83-zip \
     && ln -sf /usr/bin/php83 /usr/bin/php
 
+RUN mkdir -p /var/www/html/node_modules /var/www/html/public \
+    && chown -R node:node /var/www/html
+
+USER node
+
 EXPOSE 5173
-CMD ["sh", "-lc", "mkdir -p node_modules && chown -R node:node node_modules public && su node -s /bin/sh -c 'if [ ! -x node_modules/.bin/vite ]; then npm install; fi && npm run dev -- --host 0.0.0.0'"]
+CMD ["sh", "-lc", "mkdir -p node_modules && if [ ! -x node_modules/.bin/vite ]; then npm install; fi && npm run dev -- --host 0.0.0.0"]

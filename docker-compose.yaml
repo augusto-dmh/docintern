@@ -11,9 +11,15 @@ services:
         GROUP_ID: ${DOCKER_GROUP_ID:-1000}
     container_name: docintern-app
     restart: unless-stopped
+    command:
+      [
+        "sh",
+        "-lc",
+        "if [ ! -f /var/www/html/vendor/autoload.php ]; then composer install --no-interaction --prefer-dist; fi && exec php-fpm",
+      ]
     volumes:
       - .:/var/www/html
-      - /var/www/html/vendor # Prevent vendor override from host
+      - vendor_data:/var/www/html/vendor # Shared composer dependencies
     environment:
       - DB_HOST=mysql
       - DB_PORT=3306
@@ -41,7 +47,11 @@ services:
     networks:
       - docintern
     healthcheck:
-      test: ["CMD-SHELL", "php-fpm-healthcheck || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "/usr/local/sbin/php-fpm -t >/dev/null 2>&1 || exit 1",
+        ]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -101,7 +111,7 @@ services:
     restart: unless-stopped
     volumes:
       - .:/var/www/html
-      - /var/www/html/vendor # Prevent vendor override from host
+      - vendor_data:/var/www/html/vendor # Shared composer dependencies
     environment:
       - DB_HOST=mysql
       - DB_PORT=3306
@@ -116,6 +126,8 @@ services:
       - AWS_ENDPOINT=http://localstack:4566
       - AWS_USE_PATH_STYLE_ENDPOINT=true
     depends_on:
+      app:
+        condition: service_healthy
       mysql:
         condition: service_healthy
       redis:
@@ -138,7 +150,7 @@ services:
     restart: unless-stopped
     volumes:
       - .:/var/www/html
-      - /var/www/html/vendor # Prevent vendor override from host
+      - vendor_data:/var/www/html/vendor # Shared composer dependencies
     environment:
       - DB_HOST=mysql
       - DB_PORT=3306
@@ -147,6 +159,8 @@ services:
       - RABBITMQ_HOST=rabbitmq
       - RABBITMQ_PORT=5672
     depends_on:
+      app:
+        condition: service_healthy
       mysql:
         condition: service_healthy
       redis:
@@ -287,6 +301,8 @@ networks:
     driver: bridge
 
 volumes:
+  vendor_data:
+    driver: local
   mysql_data:
     driver: local
   redis_data:
