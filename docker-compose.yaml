@@ -33,8 +33,9 @@ services:
       - AWS_SECRET_ACCESS_KEY=test
       - AWS_DEFAULT_REGION=us-east-1
       - AWS_BUCKET=docintern-dev
-      - AWS_ENDPOINT=http://localstack:4566
+      - AWS_ENDPOINT_URL=http://localstack:4566
       - AWS_USE_PATH_STYLE_ENDPOINT=true
+      - DOCINTERN_PROVIDER_MODE=simulated
     depends_on:
       mysql:
         condition: service_healthy
@@ -123,8 +124,9 @@ services:
       - AWS_SECRET_ACCESS_KEY=test
       - AWS_DEFAULT_REGION=us-east-1
       - AWS_BUCKET=docintern-dev
-      - AWS_ENDPOINT=http://localstack:4566
+      - AWS_ENDPOINT_URL=http://localstack:4566
       - AWS_USE_PATH_STYLE_ENDPOINT=true
+      - DOCINTERN_PROVIDER_MODE=simulated
     depends_on:
       app:
         condition: service_healthy

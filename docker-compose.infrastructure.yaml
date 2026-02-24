@@ -1,0 +1,20 @@
+services:
+  app:
+    environment:
+      DOCINTERN_PROVIDER_MODE: live
+      PROCESSING_OCR_PROVIDER: live
+      PROCESSING_CLASSIFICATION_PROVIDER: live
+      AWS_ENDPOINT_URL: ""
+      AWS_USE_PATH_STYLE_ENDPOINT: "false"
+
+  worker:
+    environment:
+      DOCINTERN_PROVIDER_MODE: live
+      PROCESSING_OCR_PROVIDER: live
+      PROCESSING_CLASSIFICATION_PROVIDER: live
+      AWS_ENDPOINT_URL: ""
+      AWS_USE_PATH_STYLE_ENDPOINT: "false"
+
+  localstack:
+    profiles:
+      - local-emulation
