@@ -77,6 +77,18 @@ make up       # Start all containers
 make down     # Stop all containers
 ```
 
+## Phase 3.5 infrastructure mode
+
+For production-like cutover checks (live provider mode contracts and queue health):
+
+```bash
+make up-infrastructure
+make cutover-check
+make queue-health-check
+```
+
+See `PHASE3_5_PRODUCTION_CUTOVER_RUNBOOK.md` for external service setup and the `.env.production` template.
+
 ## Makefile commands
 
 | Command                       | Description                           |
