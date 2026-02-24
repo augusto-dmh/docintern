@@ -28,6 +28,25 @@ test('processing provider mode derives live when both providers are live', funct
     });
 });
 
+test('processing provider circuit defaults are defined', function (): void {
+    withTemporaryEnvironment([
+        'PROCESSING_PROVIDER_CIRCUIT_FAILURE_THRESHOLD' => null,
+        'PROCESSING_PROVIDER_CIRCUIT_COOLDOWN_SECONDS' => null,
+        'PROCESSING_PROVIDER_DEGRADED_REQUEUE_DELAY_SECONDS' => null,
+    ], function (): void {
+        /** @var array{
+         *     provider_circuit: array{failure_threshold: int, cooldown_seconds: int},
+         *     provider_degraded_requeue_delay_seconds: int
+         * } $processingConfig
+         */
+        $processingConfig = require base_path('config/processing.php');
+
+        expect($processingConfig['provider_circuit']['failure_threshold'])->toBe(3)
+            ->and($processingConfig['provider_circuit']['cooldown_seconds'])->toBe(60)
+            ->and($processingConfig['provider_degraded_requeue_delay_seconds'])->toBe(30);
+    });
+});
+
 test('aws endpoint url takes precedence over legacy aws endpoint', function (): void {
     withTemporaryEnvironment([
         'AWS_ENDPOINT_URL' => 'http://canonical-endpoint.test',
