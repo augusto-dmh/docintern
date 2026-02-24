@@ -6,6 +6,7 @@ use App\Services\Processing\ClassificationProvider;
 use App\Services\Processing\OcrProvider;
 use App\Services\Processing\SimulatedClassificationProvider;
 use App\Services\Processing\SimulatedOcrProvider;
+use App\Support\ProcessingRuntimeConfigValidator;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
@@ -49,6 +50,7 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->configureDefaults();
         $this->configureAuthorization();
+        $this->configureProcessingRuntimeContracts();
     }
 
     /**
@@ -78,5 +80,25 @@ class AppServiceProvider extends ServiceProvider
                 ->uncompromised()
             : null
         );
+    }
+
+    protected function configureProcessingRuntimeContracts(): void
+    {
+        if ($this->shouldSkipProcessingRuntimeValidation()) {
+            return;
+        }
+
+        $this->app->make(ProcessingRuntimeConfigValidator::class)->validateOrFail();
+    }
+
+    protected function shouldSkipProcessingRuntimeValidation(): bool
+    {
+        if (! app()->runningInConsole()) {
+            return false;
+        }
+
+        $commandName = trim((string) ($_SERVER['argv'][1] ?? ''));
+
+        return in_array($commandName, ['docintern:cutover-check'], true);
     }
 }
