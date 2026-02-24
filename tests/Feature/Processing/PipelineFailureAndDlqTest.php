@@ -10,6 +10,9 @@ use App\Models\ExtractedData;
 use App\Models\Matter;
 use App\Models\ProcessingEvent;
 use App\Models\Tenant;
+use App\Services\Processing\ClassificationProvider;
+use App\Services\Processing\OcrProvider;
+use App\Services\Processing\ProviderDegradedException;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
 
@@ -128,4 +131,130 @@ test('virus scan simulated failure transitions document to scan failed', functio
     expect($document->fresh()->status)->toBe('scan_failed')
         ->and($event)->not()->toBeNull()
         ->and($event->event)->toBe('document.virus_scan.failed');
+});
+
+test('ocr provider degradation requeues extraction with metadata', function (): void {
+    Queue::fake();
+
+    $document = createFailureDocument('scan_passed', 'degraded.pdf');
+    $payload = failurePayload($document);
+
+    app()->instance(OcrProvider::class, new class implements OcrProvider
+    {
+        public function extract(Document $document, array $payload): array
+        {
+            throw new ProviderDegradedException('textract', 'ThrottlingException');
+        }
+    });
+
+    app()->call([new OcrExtractionConsumerJob($payload), 'handle']);
+
+    $requeuedJob = Queue::pushed(OcrExtractionConsumerJob::class)->first();
+
+    expect($requeuedJob)->toBeInstanceOf(OcrExtractionConsumerJob::class)
+        ->and($requeuedJob->queue)->toBe('queue.ocr-extraction')
+        ->and($requeuedJob->payload['metadata']['provider_degraded_attempt'] ?? null)->toBe(1)
+        ->and($requeuedJob->payload['metadata']['provider_degraded_provider'] ?? null)->toBe('textract')
+        ->and($requeuedJob->payload['metadata']['provider_degraded_reason'] ?? null)->toBe('ThrottlingException')
+        ->and($requeuedJob->payload['retry_count'] ?? null)->toBe(1);
+});
+
+test('classification provider degradation requeues classification with metadata', function (): void {
+    Queue::fake();
+
+    $document = createFailureDocument('classifying', 'degraded-contract.pdf');
+
+    ExtractedData::query()->create([
+        'tenant_id' => $document->tenant_id,
+        'document_id' => $document->id,
+        'provider' => 'simulated',
+        'extracted_text' => 'Simulated text',
+        'payload' => ['lines' => ['Simulated text']],
+        'metadata' => ['classification_hint' => 'contract'],
+    ]);
+
+    $payload = failurePayload($document);
+
+    app()->instance(ClassificationProvider::class, new class implements ClassificationProvider
+    {
+        public function classify(Document $document, ?ExtractedData $extractedData, array $payload): array
+        {
+            throw new ProviderDegradedException('comprehend', 'ResourceUnavailableException');
+        }
+    });
+
+    app()->call([new ClassificationConsumerJob($payload), 'handle']);
+
+    $requeuedJob = Queue::pushed(ClassificationConsumerJob::class)->first();
+
+    expect($requeuedJob)->toBeInstanceOf(ClassificationConsumerJob::class)
+        ->and($requeuedJob->queue)->toBe('queue.classify.general')
+        ->and($requeuedJob->payload['metadata']['provider_degraded_attempt'] ?? null)->toBe(1)
+        ->and($requeuedJob->payload['metadata']['provider_degraded_provider'] ?? null)->toBe('comprehend')
+        ->and($requeuedJob->payload['metadata']['provider_degraded_reason'] ?? null)->toBe('ResourceUnavailableException')
+        ->and($requeuedJob->payload['retry_count'] ?? null)->toBe(1);
+});
+
+test('ocr degraded retries exhaustion dead letters and transitions to extraction failed', function (): void {
+    Queue::fake();
+
+    $document = createFailureDocument('scan_passed', 'degraded-exhaustion.pdf');
+    $payload = failurePayload($document, ['provider_degraded_attempt' => 3]);
+
+    app()->instance(OcrProvider::class, new class implements OcrProvider
+    {
+        public function extract(Document $document, array $payload): array
+        {
+            throw new ProviderDegradedException('textract', 'ServiceUnavailableException');
+        }
+    });
+
+    runJobAndTriggerFailedHook(new OcrExtractionConsumerJob($payload));
+
+    $deadLetterJob = Queue::pushed(DeadLetterConsumerJob::class)->first();
+
+    expect($deadLetterJob)->toBeInstanceOf(DeadLetterConsumerJob::class)
+        ->and($deadLetterJob->payload['metadata']['failed_consumer'] ?? null)->toBe('ocr-extraction')
+        ->and($deadLetterJob->payload['metadata']['failure_reason'] ?? null)->toContain('remained degraded');
+
+    app()->call([$deadLetterJob, 'handle']);
+
+    expect($document->fresh()->status)->toBe('extraction_failed');
+});
+
+test('classification degraded retries exhaustion dead letters and transitions to classification failed', function (): void {
+    Queue::fake();
+
+    $document = createFailureDocument('classifying', 'degraded-exhaustion-contract.pdf');
+
+    ExtractedData::query()->create([
+        'tenant_id' => $document->tenant_id,
+        'document_id' => $document->id,
+        'provider' => 'simulated',
+        'extracted_text' => 'Simulated text',
+        'payload' => ['lines' => ['Simulated text']],
+        'metadata' => ['classification_hint' => 'contract'],
+    ]);
+
+    $payload = failurePayload($document, ['provider_degraded_attempt' => 3]);
+
+    app()->instance(ClassificationProvider::class, new class implements ClassificationProvider
+    {
+        public function classify(Document $document, ?ExtractedData $extractedData, array $payload): array
+        {
+            throw new ProviderDegradedException('comprehend', 'ServiceUnavailableException');
+        }
+    });
+
+    runJobAndTriggerFailedHook(new ClassificationConsumerJob($payload));
+
+    $deadLetterJob = Queue::pushed(DeadLetterConsumerJob::class)->first();
+
+    expect($deadLetterJob)->toBeInstanceOf(DeadLetterConsumerJob::class)
+        ->and($deadLetterJob->payload['metadata']['failed_consumer'] ?? null)->toBe('classification')
+        ->and($deadLetterJob->payload['metadata']['failure_reason'] ?? null)->toContain('remained degraded');
+
+    app()->call([$deadLetterJob, 'handle']);
+
+    expect($document->fresh()->status)->toBe('classification_failed');
 });

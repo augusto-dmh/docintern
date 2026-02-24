@@ -3,6 +3,8 @@
 namespace App\Providers;
 
 use App\Services\Processing\ClassificationProvider;
+use App\Services\Processing\LiveComprehendClassificationProvider;
+use App\Services\Processing\LiveTextractOcrProvider;
 use App\Services\Processing\OcrProvider;
 use App\Services\Processing\SimulatedClassificationProvider;
 use App\Services\Processing\SimulatedOcrProvider;
@@ -30,6 +32,7 @@ class AppServiceProvider extends ServiceProvider
 
             return match ($provider) {
                 'simulated' => $app->make(SimulatedOcrProvider::class),
+                'live' => $app->make(LiveTextractOcrProvider::class),
                 default => throw new InvalidArgumentException("Unsupported OCR provider [{$provider}]."),
             };
         });
@@ -38,6 +41,7 @@ class AppServiceProvider extends ServiceProvider
 
             return match ($provider) {
                 'simulated' => $app->make(SimulatedClassificationProvider::class),
+                'live' => $app->make(LiveComprehendClassificationProvider::class),
                 default => throw new InvalidArgumentException("Unsupported classification provider [{$provider}]."),
             };
         });

@@ -8,6 +8,7 @@ use App\Models\ProcessingEvent;
 use App\Services\DocumentStatusTransitionService;
 use App\Services\Processing\ClassificationRoutingResolver;
 use App\Services\Processing\OcrProvider;
+use App\Services\Processing\ProviderDegradedException;
 use App\Services\ProcessingEventRecorder;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -106,7 +107,14 @@ class OcrExtractionConsumerJob implements ShouldQueue
         );
 
         if ($document->status === 'extracting') {
-            $result = $ocrProvider->extract($document, $this->payload);
+            try {
+                $result = $ocrProvider->extract($document, $this->payload);
+            } catch (ProviderDegradedException $exception) {
+                $this->redispatchWhileProviderDegraded($exception);
+
+                return;
+            }
+
             $classificationHint = $classificationRoutingResolver->resolveTypeHint(
                 is_string($result['classification_hint'] ?? null) ? $result['classification_hint'] : null,
                 $document->file_name,
@@ -256,6 +264,20 @@ class OcrExtractionConsumerJob implements ShouldQueue
         return max(0, (int) ($metadata['scan_wait_attempt'] ?? 0));
     }
 
+    protected function resolveProviderDegradedAttempt(): int
+    {
+        $metadata = $this->resolveMetadata();
+
+        return max(0, (int) ($metadata['provider_degraded_attempt'] ?? 0));
+    }
+
+    protected function resolveProviderDegradedRequeueDelaySeconds(): int
+    {
+        $delay = (int) config('processing.provider_degraded_requeue_delay_seconds', 30);
+
+        return $delay > 0 ? $delay : 30;
+    }
+
     protected function resolveDocumentId(): int
     {
         return (int) ($this->payload['document_id'] ?? 0);
@@ -338,5 +360,36 @@ class OcrExtractionConsumerJob implements ShouldQueue
         $payload['metadata'] = $metadata;
 
         return $payload;
+    }
+
+    protected function redispatchWhileProviderDegraded(ProviderDegradedException $exception): void
+    {
+        $degradedAttempt = $this->resolveProviderDegradedAttempt();
+        $retryAttempts = $this->resolveRetryAttempts();
+
+        if ($degradedAttempt >= $retryAttempts) {
+            throw new RuntimeException(
+                sprintf(
+                    'OCR provider [%s] remained degraded after %d attempts (%s).',
+                    $exception->provider,
+                    $degradedAttempt,
+                    $exception->reason,
+                ),
+                previous: $exception,
+            );
+        }
+
+        $payload = $this->payload;
+        $metadata = $this->resolveMetadata();
+        $metadata['provider_degraded_attempt'] = $degradedAttempt + 1;
+        $metadata['provider_degraded_reason'] = $exception->reason;
+        $metadata['provider_degraded_provider'] = $exception->provider;
+        $payload['metadata'] = $metadata;
+        $payload['retry_count'] = ((int) ($payload['retry_count'] ?? 0)) + 1;
+
+        self::dispatch($payload)
+            ->delay(now()->addSeconds($this->resolveProviderDegradedRequeueDelaySeconds()))
+            ->onConnection($this->resolveQueueConnection())
+            ->onQueue('queue.ocr-extraction');
     }
 }

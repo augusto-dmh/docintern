@@ -23,10 +23,32 @@ test('cutover check command fails when live contracts are invalid', function ():
     config()->set('queue.connections.rabbitmq.management.username', '');
     config()->set('queue.connections.rabbitmq.management.password', '');
     config()->set('queue.connections.rabbitmq.management.vhost', '');
+    config()->set('processing.comprehend.endpoint_arn', '');
 
     $this->artisan('docintern:cutover-check')
         ->expectsOutputToContain('Provider mode: live')
         ->expectsOutputToContain('Cutover contract check failed.')
         ->expectsOutputToContain('PROCESSING_OCR_PROVIDER must be set to [live].')
+        ->assertExitCode(SymfonyCommand::FAILURE);
+});
+
+test('cutover check command fails when comprehend endpoint contract is missing', function (): void {
+    config()->set('processing.provider_mode', 'live');
+    config()->set('processing.ocr_provider', 'live');
+    config()->set('processing.classification_provider', 'live');
+    config()->set('filesystems.default', 's3');
+    config()->set('processing.queue_connection', 'rabbitmq');
+    config()->set('aws.region', 'us-east-1');
+    config()->set('filesystems.disks.s3.bucket', 'docintern-production');
+    config()->set('queue.connections.rabbitmq.management.host', 'rabbitmq.example.com');
+    config()->set('queue.connections.rabbitmq.management.username', 'docintern');
+    config()->set('queue.connections.rabbitmq.management.password', 'secret');
+    config()->set('queue.connections.rabbitmq.management.vhost', '/docintern');
+    config()->set('processing.comprehend.endpoint_arn', '');
+
+    $this->artisan('docintern:cutover-check')
+        ->expectsOutputToContain('Provider mode: live')
+        ->expectsOutputToContain('Cutover contract check failed.')
+        ->expectsOutputToContain('PROCESSING_COMPREHEND_ENDPOINT_ARN must be set for live mode.')
         ->assertExitCode(SymfonyCommand::FAILURE);
 });
