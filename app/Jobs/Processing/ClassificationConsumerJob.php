@@ -9,6 +9,7 @@ use App\Models\ProcessingEvent;
 use App\Services\DocumentStatusTransitionService;
 use App\Services\Processing\ClassificationProvider;
 use App\Services\Processing\ClassificationRoutingResolver;
+use App\Services\Processing\ProviderDegradedException;
 use App\Services\ProcessingEventRecorder;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -108,7 +109,13 @@ class ClassificationConsumerJob implements ShouldQueue
             ->where('document_id', $document->id)
             ->first();
 
-        $result = $classificationProvider->classify($document, $extractedData, $this->payload);
+        try {
+            $result = $classificationProvider->classify($document, $extractedData, $this->payload);
+        } catch (ProviderDegradedException $exception) {
+            $this->redispatchWhileProviderDegraded($exception);
+
+            return;
+        }
 
         $resolvedType = $classificationRoutingResolver->normalizeType(
             is_string($result['type'] ?? null) ? $result['type'] : null,
@@ -246,6 +253,20 @@ class ClassificationConsumerJob implements ShouldQueue
         return max(0, (int) ($metadata['classification_wait_attempt'] ?? 0));
     }
 
+    protected function resolveProviderDegradedAttempt(): int
+    {
+        $metadata = $this->resolveMetadata();
+
+        return max(0, (int) ($metadata['provider_degraded_attempt'] ?? 0));
+    }
+
+    protected function resolveProviderDegradedRequeueDelaySeconds(): int
+    {
+        $delay = (int) config('processing.provider_degraded_requeue_delay_seconds', 30);
+
+        return $delay > 0 ? $delay : 30;
+    }
+
     protected function resolveDocumentId(): int
     {
         return (int) ($this->payload['document_id'] ?? 0);
@@ -328,5 +349,40 @@ class ClassificationConsumerJob implements ShouldQueue
         $payload['metadata'] = $metadata;
 
         return $payload;
+    }
+
+    protected function redispatchWhileProviderDegraded(ProviderDegradedException $exception): void
+    {
+        $degradedAttempt = $this->resolveProviderDegradedAttempt();
+        $retryAttempts = $this->resolveRetryAttempts();
+
+        if ($degradedAttempt >= $retryAttempts) {
+            throw new RuntimeException(
+                sprintf(
+                    'Classification provider [%s] remained degraded after %d attempts (%s).',
+                    $exception->provider,
+                    $degradedAttempt,
+                    $exception->reason,
+                ),
+                previous: $exception,
+            );
+        }
+
+        $payload = $this->payload;
+        $metadata = $this->resolveMetadata();
+        $metadata['provider_degraded_attempt'] = $degradedAttempt + 1;
+        $metadata['provider_degraded_reason'] = $exception->reason;
+        $metadata['provider_degraded_provider'] = $exception->provider;
+        $payload['metadata'] = $metadata;
+        $payload['retry_count'] = ((int) ($payload['retry_count'] ?? 0)) + 1;
+
+        $queue = is_string($this->queue) && $this->queue !== ''
+            ? $this->queue
+            : 'queue.classify.general';
+
+        self::dispatch($payload)
+            ->delay(now()->addSeconds($this->resolveProviderDegradedRequeueDelaySeconds()))
+            ->onConnection($this->resolveQueueConnection())
+            ->onQueue($queue);
     }
 }
