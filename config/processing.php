@@ -30,6 +30,14 @@ return [
     'queue_connection' => env('PROCESSING_QUEUE_CONNECTION', env('QUEUE_CONNECTION', 'sync')),
     'ocr_provider' => $ocrProvider,
     'classification_provider' => $classificationProvider,
+    'comprehend' => [
+        'endpoint_arn' => env('PROCESSING_COMPREHEND_ENDPOINT_ARN'),
+    ],
+    'provider_circuit' => [
+        'failure_threshold' => (int) env('PROCESSING_PROVIDER_CIRCUIT_FAILURE_THRESHOLD', 3),
+        'cooldown_seconds' => (int) env('PROCESSING_PROVIDER_CIRCUIT_COOLDOWN_SECONDS', 60),
+    ],
+    'provider_degraded_requeue_delay_seconds' => (int) env('PROCESSING_PROVIDER_DEGRADED_REQUEUE_DELAY_SECONDS', 30),
     'retry_attempts' => (int) env('PROCESSING_RETRY_ATTEMPTS', 3),
     'retry_backoff' => $retryBackoff,
     'scan_wait_delay_seconds' => (int) env('PROCESSING_SCAN_WAIT_DELAY_SECONDS', 5),
@@ -80,6 +88,10 @@ return [
             [
                 'path' => 'queue.connections.rabbitmq.management.vhost',
                 'env' => 'RABBITMQ_MANAGEMENT_VHOST',
+            ],
+            [
+                'path' => 'processing.comprehend.endpoint_arn',
+                'env' => 'PROCESSING_COMPREHEND_ENDPOINT_ARN',
             ],
         ],
     ],
