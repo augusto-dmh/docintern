@@ -1,16 +1,15 @@
 <?php
 
-$ocrProvider = (string) env('PROCESSING_OCR_PROVIDER', 'simulated');
-$classificationProvider = (string) env('PROCESSING_CLASSIFICATION_PROVIDER', 'simulated');
-$providerMode = env('DOCINTERN_PROVIDER_MODE', env('PROCESSING_PROVIDER_MODE'));
+$ocrProvider = strtolower(trim((string) env('PROCESSING_OCR_PROVIDER', 'openai')));
+$classificationProvider = strtolower(trim((string) env('PROCESSING_CLASSIFICATION_PROVIDER', 'openai')));
 
-if (! is_string($providerMode) || trim($providerMode) === '') {
-    $providerMode = $ocrProvider === 'live' && $classificationProvider === 'live'
-        ? 'live'
-        : 'simulated';
+if ($ocrProvider === 'live') {
+    $ocrProvider = 'openai';
 }
 
-$providerMode = strtolower(trim((string) $providerMode));
+if ($classificationProvider === 'live') {
+    $classificationProvider = 'openai';
+}
 
 $retryBackoff = array_values(array_filter(
     array_map(
@@ -25,14 +24,15 @@ if ($retryBackoff === []) {
 }
 
 return [
-    'provider_mode' => $providerMode,
-    'supported_provider_modes' => ['simulated', 'live'],
-    'queue_connection' => env('PROCESSING_QUEUE_CONNECTION', env('QUEUE_CONNECTION', 'sync')),
+    'queue_connection' => env('PROCESSING_QUEUE_CONNECTION', env('QUEUE_CONNECTION', 'rabbitmq')),
     'ocr_provider' => $ocrProvider,
     'classification_provider' => $classificationProvider,
+    'supported_ocr_providers' => ['openai', 'simulated'],
+    'supported_classification_providers' => ['openai', 'simulated'],
     'openai' => [
         'api_key' => env('OPENAI_API_KEY'),
         'model' => env('PROCESSING_OPENAI_MODEL', 'gpt-4o-mini'),
+        'ocr_model' => env('PROCESSING_OPENAI_OCR_MODEL', env('PROCESSING_OPENAI_MODEL', 'gpt-4o-mini')),
         'base_url' => env('OPENAI_BASE_URL', 'https://api.openai.com/v1'),
         'timeout_seconds' => (int) env('PROCESSING_OPENAI_TIMEOUT', 15),
     ],
@@ -44,17 +44,17 @@ return [
     'retry_attempts' => (int) env('PROCESSING_RETRY_ATTEMPTS', 3),
     'retry_backoff' => $retryBackoff,
     'scan_wait_delay_seconds' => (int) env('PROCESSING_SCAN_WAIT_DELAY_SECONDS', 5),
-    'live_required_contract' => [
+    'runtime_required_contract' => [
         'exact' => [
             [
                 'path' => 'processing.ocr_provider',
                 'env' => 'PROCESSING_OCR_PROVIDER',
-                'expected' => 'live',
+                'expected' => 'openai',
             ],
             [
                 'path' => 'processing.classification_provider',
                 'env' => 'PROCESSING_CLASSIFICATION_PROVIDER',
-                'expected' => 'live',
+                'expected' => 'openai',
             ],
             [
                 'path' => 'filesystems.default',
@@ -69,28 +69,20 @@ return [
         ],
         'non_empty' => [
             [
+                'path' => 'aws.credentials.key',
+                'env' => 'AWS_ACCESS_KEY_ID',
+            ],
+            [
+                'path' => 'aws.credentials.secret',
+                'env' => 'AWS_SECRET_ACCESS_KEY',
+            ],
+            [
                 'path' => 'aws.region',
                 'env' => 'AWS_DEFAULT_REGION',
             ],
             [
                 'path' => 'filesystems.disks.s3.bucket',
                 'env' => 'AWS_BUCKET',
-            ],
-            [
-                'path' => 'queue.connections.rabbitmq.management.host',
-                'env' => 'RABBITMQ_MANAGEMENT_HOST',
-            ],
-            [
-                'path' => 'queue.connections.rabbitmq.management.username',
-                'env' => 'RABBITMQ_MANAGEMENT_USER',
-            ],
-            [
-                'path' => 'queue.connections.rabbitmq.management.password',
-                'env' => 'RABBITMQ_MANAGEMENT_PASSWORD',
-            ],
-            [
-                'path' => 'queue.connections.rabbitmq.management.vhost',
-                'env' => 'RABBITMQ_MANAGEMENT_VHOST',
             ],
             [
                 'path' => 'processing.openai.api_key',
