@@ -23,12 +23,12 @@ test('provider circuit breaker opens after repeated transient failures', functio
     };
     $transientMatcher = fn (): bool => true;
 
-    expect(fn () => $breaker->run('textract', $failingOperation, $transientMatcher))
+    expect(fn () => $breaker->run('openai-ocr', $failingOperation, $transientMatcher))
         ->toThrow(ProviderDegradedException::class, 'upstream timeout');
-    expect(fn () => $breaker->run('textract', $failingOperation, $transientMatcher))
+    expect(fn () => $breaker->run('openai-ocr', $failingOperation, $transientMatcher))
         ->toThrow(ProviderDegradedException::class, 'upstream timeout');
 
-    expect(fn () => $breaker->run('textract', function () use (&$operationCallCount): string {
+    expect(fn () => $breaker->run('openai-ocr', function () use (&$operationCallCount): string {
         $operationCallCount++;
 
         return 'ok';

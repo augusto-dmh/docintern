@@ -148,7 +148,7 @@ test('ocr provider degradation requeues extraction with metadata', function (): 
     {
         public function extract(Document $document, array $payload): array
         {
-            throw new ProviderDegradedException('textract', 'ThrottlingException');
+            throw new ProviderDegradedException('openai', 'ThrottlingException');
         }
     });
 
@@ -159,7 +159,7 @@ test('ocr provider degradation requeues extraction with metadata', function (): 
     expect($requeuedJob)->toBeInstanceOf(OcrExtractionConsumerJob::class)
         ->and($requeuedJob->queue)->toBe('queue.ocr-extraction')
         ->and($requeuedJob->payload['metadata']['provider_degraded_attempt'] ?? null)->toBe(1)
-        ->and($requeuedJob->payload['metadata']['provider_degraded_provider'] ?? null)->toBe('textract')
+        ->and($requeuedJob->payload['metadata']['provider_degraded_provider'] ?? null)->toBe('openai')
         ->and($requeuedJob->payload['metadata']['provider_degraded_reason'] ?? null)->toBe('ThrottlingException')
         ->and($requeuedJob->payload['retry_count'] ?? null)->toBe(1);
 });
@@ -210,7 +210,7 @@ test('ocr degraded retries exhaustion dead letters and transitions to extraction
     {
         public function extract(Document $document, array $payload): array
         {
-            throw new ProviderDegradedException('textract', 'ServiceUnavailableException');
+            throw new ProviderDegradedException('openai', 'ServiceUnavailableException');
         }
     });
 
