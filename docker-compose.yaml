@@ -33,9 +33,13 @@ services:
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-test}
       - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-us-east-1}
       - AWS_BUCKET=${AWS_BUCKET:-docintern-dev}
-      - AWS_ENDPOINT_URL=${AWS_ENDPOINT_URL:-http://localstack:4566}
-      - AWS_USE_PATH_STYLE_ENDPOINT=${AWS_USE_PATH_STYLE_ENDPOINT:-true}
-      - DOCINTERN_PROVIDER_MODE=simulated
+      - AWS_ENDPOINT_URL=${AWS_ENDPOINT_URL:-}
+      - AWS_USE_PATH_STYLE_ENDPOINT=${AWS_USE_PATH_STYLE_ENDPOINT:-false}
+      - FILESYSTEM_DISK=s3
+      - QUEUE_CONNECTION=rabbitmq
+      - PROCESSING_QUEUE_CONNECTION=rabbitmq
+      - PROCESSING_OCR_PROVIDER=openai
+      - PROCESSING_CLASSIFICATION_PROVIDER=openai
     depends_on:
       mysql:
         condition: service_healthy
@@ -123,9 +127,13 @@ services:
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-test}
       - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-us-east-1}
       - AWS_BUCKET=${AWS_BUCKET:-docintern-dev}
-      - AWS_ENDPOINT_URL=${AWS_ENDPOINT_URL:-http://localstack:4566}
-      - AWS_USE_PATH_STYLE_ENDPOINT=${AWS_USE_PATH_STYLE_ENDPOINT:-true}
-      - DOCINTERN_PROVIDER_MODE=simulated
+      - AWS_ENDPOINT_URL=${AWS_ENDPOINT_URL:-}
+      - AWS_USE_PATH_STYLE_ENDPOINT=${AWS_USE_PATH_STYLE_ENDPOINT:-false}
+      - FILESYSTEM_DISK=s3
+      - QUEUE_CONNECTION=rabbitmq
+      - PROCESSING_QUEUE_CONNECTION=rabbitmq
+      - PROCESSING_OCR_PROVIDER=openai
+      - PROCESSING_CLASSIFICATION_PROVIDER=openai
     depends_on:
       app:
         condition: service_healthy

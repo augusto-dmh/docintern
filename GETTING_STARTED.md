@@ -20,6 +20,14 @@ cd docintern
 cp .env.example .env
 ```
 
+Fill required external development credentials in `.env`:
+
+- `OPENAI_API_KEY` (mandatory)
+- `AWS_ACCESS_KEY_ID`
+- `AWS_SECRET_ACCESS_KEY`
+- `AWS_DEFAULT_REGION`
+- `AWS_BUCKET`
+
 Generate an application key (after containers are running):
 
 ```bash
@@ -77,17 +85,18 @@ make up       # Start all containers
 make down     # Stop all containers
 ```
 
-## Phase 3.5 infrastructure mode
+## Runtime checks
 
-For production-like cutover checks (live provider mode contracts and queue health):
+The project runs in one development-first runtime profile (OpenAI + S3 + RabbitMQ).
+
+Validate environment and queue connectivity with:
 
 ```bash
-make up-infrastructure
-make cutover-check
+make environment-check
 make queue-health-check
 ```
 
-See `PHASE3_5_PRODUCTION_CUTOVER_RUNBOOK.md` for external service setup and the `.env.production` template.
+`make cutover-check` remains available as an alias for compatibility.
 
 ## Makefile commands
 
@@ -105,6 +114,7 @@ See `PHASE3_5_PRODUCTION_CUTOVER_RUNBOOK.md` for external service setup and the 
 | `make test`                   | Run the test suite                    |
 | `make npm <cmd>`              | Run an npm command in the node container |
 | `make logs <service>`         | Tail logs for a service               |
+| `make environment-check`      | Validate development runtime contracts |
 
 ## Connecting to the database
 
