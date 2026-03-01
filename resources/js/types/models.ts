@@ -42,6 +42,13 @@ export type DocumentStatus =
     | 'reviewed'
     | 'approved';
 
+export type DocumentClassification = {
+    provider: string;
+    type: string;
+    confidence: number | string | null;
+    metadata?: Record<string, unknown> | null;
+};
+
 export type Document = {
     id: number;
     tenant_id: string;
@@ -57,6 +64,7 @@ export type Document = {
     updated_at: string;
     matter?: Matter;
     uploader?: User | null;
+    classification?: DocumentClassification | null;
 };
 
 export type DocumentActivity = {

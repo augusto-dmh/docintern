@@ -137,6 +137,13 @@ npx vite build   # or: make npm run build
 
 All five steps are mandatory. Do not push if any step fails.
 
+### PR File Scope (Strict)
+
+- Do not include markdown files (`*.md`) in PRs unless the user explicitly asks for that specific markdown file change.
+- Stage only files touched to fulfill the current chat request.
+- Never include unrelated dirty files, local notes, or plan artifacts in the PR.
+- Before commit, verify scope with `git status --short` and `git diff --cached --stat`.
+
 ### Responsibility Split (Enforced)
 
 - The agent is responsible for all git and PR handling:

@@ -4,7 +4,7 @@ up:
 	docker compose up -d
 
 up-infrastructure:
-	docker compose -f docker-compose.yaml -f docker-compose.infrastructure.yaml up -d
+	docker compose -f docker-compose.yaml -f docker-compose.infrastructure.yaml --profile local-emulation up -d
 
 down:
 	docker compose down

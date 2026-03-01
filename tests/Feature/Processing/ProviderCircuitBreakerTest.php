@@ -45,16 +45,16 @@ test('provider circuit breaker allows execution after cooldown window', function
     $breaker = app(ProviderCircuitBreaker::class);
     $transientMatcher = fn (): bool => true;
 
-    expect(fn () => $breaker->run('comprehend', function (): void {
+    expect(fn () => $breaker->run('openai', function (): void {
         throw new RuntimeException('service unavailable');
     }, $transientMatcher))->toThrow(ProviderDegradedException::class);
 
-    expect(fn () => $breaker->run('comprehend', fn () => 'nope', $transientMatcher))
+    expect(fn () => $breaker->run('openai', fn () => 'nope', $transientMatcher))
         ->toThrow(ProviderDegradedException::class, 'circuit_breaker_open');
 
     $this->travel(2)->seconds();
 
-    $result = $breaker->run('comprehend', fn () => 'ok', $transientMatcher);
+    $result = $breaker->run('openai', fn () => 'ok', $transientMatcher);
 
     expect($result)->toBe('ok');
 });

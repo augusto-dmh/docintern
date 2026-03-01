@@ -15,7 +15,7 @@ services:
       [
         "sh",
         "-lc",
-        "if [ ! -f /var/www/html/vendor/autoload.php ]; then composer install --no-interaction --prefer-dist; fi && exec php-fpm",
+        "if [ ! -f /var/www/html/vendor/autoload.php ]; then composer install --no-interaction --prefer-dist; fi && exec /usr/local/sbin/php-fpm",
       ]
     volumes:
       - .:/var/www/html
@@ -29,12 +29,12 @@ services:
       - RABBITMQ_PORT=5672
       - MAIL_HOST=mailpit
       - MAIL_PORT=1025
-      - AWS_ACCESS_KEY_ID=test
-      - AWS_SECRET_ACCESS_KEY=test
-      - AWS_DEFAULT_REGION=us-east-1
-      - AWS_BUCKET=docintern-dev
-      - AWS_ENDPOINT_URL=http://localstack:4566
-      - AWS_USE_PATH_STYLE_ENDPOINT=true
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-test}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-test}
+      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-us-east-1}
+      - AWS_BUCKET=${AWS_BUCKET:-docintern-dev}
+      - AWS_ENDPOINT_URL=${AWS_ENDPOINT_URL:-http://localstack:4566}
+      - AWS_USE_PATH_STYLE_ENDPOINT=${AWS_USE_PATH_STYLE_ENDPOINT:-true}
       - DOCINTERN_PROVIDER_MODE=simulated
     depends_on:
       mysql:
@@ -42,8 +42,6 @@ services:
       redis:
         condition: service_healthy
       rabbitmq:
-        condition: service_healthy
-      localstack:
         condition: service_healthy
     networks:
       - docintern
@@ -72,7 +70,8 @@ services:
     volumes:
       - .:/var/www/html:ro
     depends_on:
-      - app
+      app:
+        condition: service_healthy
     networks:
       - docintern
     healthcheck:
@@ -120,12 +119,12 @@ services:
       - REDIS_PORT=6379
       - RABBITMQ_HOST=rabbitmq
       - RABBITMQ_PORT=5672
-      - AWS_ACCESS_KEY_ID=test
-      - AWS_SECRET_ACCESS_KEY=test
-      - AWS_DEFAULT_REGION=us-east-1
-      - AWS_BUCKET=docintern-dev
-      - AWS_ENDPOINT_URL=http://localstack:4566
-      - AWS_USE_PATH_STYLE_ENDPOINT=true
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-test}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-test}
+      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-us-east-1}
+      - AWS_BUCKET=${AWS_BUCKET:-docintern-dev}
+      - AWS_ENDPOINT_URL=${AWS_ENDPOINT_URL:-http://localstack:4566}
+      - AWS_USE_PATH_STYLE_ENDPOINT=${AWS_USE_PATH_STYLE_ENDPOINT:-true}
       - DOCINTERN_PROVIDER_MODE=simulated
     depends_on:
       app:
@@ -135,8 +134,6 @@ services:
       redis:
         condition: service_healthy
       rabbitmq:
-        condition: service_healthy
-      localstack:
         condition: service_healthy
     networks:
       - docintern
@@ -279,6 +276,8 @@ services:
     image: localstack/localstack:3.7
     container_name: docintern-localstack
     restart: unless-stopped
+    profiles:
+      - local-emulation
     ports:
       - "4566:4566"
     environment:
