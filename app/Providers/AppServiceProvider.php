@@ -4,8 +4,8 @@ namespace App\Providers;
 
 use App\Services\Processing\ClassificationProvider;
 use App\Services\Processing\LiveOpenAiClassificationProvider;
-use App\Services\Processing\LiveTextractOcrProvider;
 use App\Services\Processing\OcrProvider;
+use App\Services\Processing\OpenAiOcrProvider;
 use App\Services\Processing\SimulatedClassificationProvider;
 use App\Services\Processing\SimulatedOcrProvider;
 use App\Support\ProcessingRuntimeConfigValidator;
@@ -32,7 +32,7 @@ class AppServiceProvider extends ServiceProvider
 
             return match ($provider) {
                 'simulated' => $app->make(SimulatedOcrProvider::class),
-                'live' => $app->make(LiveTextractOcrProvider::class),
+                'openai' => $app->make(OpenAiOcrProvider::class),
                 default => throw new InvalidArgumentException("Unsupported OCR provider [{$provider}]."),
             };
         });
@@ -41,7 +41,7 @@ class AppServiceProvider extends ServiceProvider
 
             return match ($provider) {
                 'simulated' => $app->make(SimulatedClassificationProvider::class),
-                'live' => $app->make(LiveOpenAiClassificationProvider::class),
+                'openai' => $app->make(LiveOpenAiClassificationProvider::class),
                 default => throw new InvalidArgumentException("Unsupported classification provider [{$provider}]."),
             };
         });
@@ -97,12 +97,22 @@ class AppServiceProvider extends ServiceProvider
 
     protected function shouldSkipProcessingRuntimeValidation(): bool
     {
+        if (app()->environment('testing') || app()->runningUnitTests()) {
+            return true;
+        }
+
         if (! app()->runningInConsole()) {
             return false;
         }
 
         $commandName = trim((string) ($_SERVER['argv'][1] ?? ''));
 
-        return in_array($commandName, ['docintern:cutover-check'], true);
+        return ! in_array($commandName, [
+            'queue:work',
+            'queue:listen',
+            'schedule:work',
+            'schedule:run',
+            'horizon',
+        ], true);
     }
 }

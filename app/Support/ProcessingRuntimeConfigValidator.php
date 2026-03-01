@@ -8,21 +8,6 @@ class ProcessingRuntimeConfigValidator
 {
     public function validateOrFail(): void
     {
-        $providerMode = $this->providerMode();
-        $supportedProviderModes = $this->supportedProviderModes();
-
-        if (! in_array($providerMode, $supportedProviderModes, true)) {
-            throw new InvalidArgumentException(sprintf(
-                'Unsupported processing provider mode [%s]. Supported modes: %s.',
-                $providerMode,
-                implode(', ', $supportedProviderModes),
-            ));
-        }
-
-        if ($providerMode !== 'live') {
-            return;
-        }
-
         $issues = [
             ...$this->exactContractIssues(),
             ...$this->nonEmptyContractIssues(),
@@ -33,35 +18,8 @@ class ProcessingRuntimeConfigValidator
         }
 
         throw new InvalidArgumentException(
-            "Live provider mode configuration is invalid:\n- ".implode("\n- ", $issues),
+            "Development runtime configuration is invalid:\n- ".implode("\n- ", $issues),
         );
-    }
-
-    protected function providerMode(): string
-    {
-        return strtolower(trim((string) config('processing.provider_mode', 'simulated')));
-    }
-
-    /**
-     * @return list<string>
-     */
-    protected function supportedProviderModes(): array
-    {
-        $supportedModes = config('processing.supported_provider_modes', ['simulated', 'live']);
-
-        if (! is_array($supportedModes)) {
-            return ['simulated', 'live'];
-        }
-
-        $normalizedModes = array_values(array_filter(
-            array_map(
-                static fn (mixed $value): string => strtolower(trim((string) $value)),
-                $supportedModes,
-            ),
-            static fn (string $value): bool => $value !== '',
-        ));
-
-        return $normalizedModes === [] ? ['simulated', 'live'] : $normalizedModes;
     }
 
     /**
@@ -70,7 +28,7 @@ class ProcessingRuntimeConfigValidator
     protected function exactContractIssues(): array
     {
         $issues = [];
-        $exactContracts = config('processing.live_required_contract.exact', []);
+        $exactContracts = config('processing.runtime_required_contract.exact', []);
 
         if (! is_array($exactContracts)) {
             return $issues;
@@ -105,7 +63,7 @@ class ProcessingRuntimeConfigValidator
     protected function nonEmptyContractIssues(): array
     {
         $issues = [];
-        $requiredContracts = config('processing.live_required_contract.non_empty', []);
+        $requiredContracts = config('processing.runtime_required_contract.non_empty', []);
 
         if (! is_array($requiredContracts)) {
             return $issues;
@@ -133,7 +91,7 @@ class ProcessingRuntimeConfigValidator
                 continue;
             }
 
-            $issues[] = sprintf('%s must be set for live mode.', $envKey);
+            $issues[] = sprintf('%s must be set for development runtime.', $envKey);
         }
 
         return $issues;

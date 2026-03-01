@@ -6,9 +6,8 @@ use App\Models\ExtractedData;
 use App\Models\Matter;
 use App\Models\Tenant;
 use App\Services\Processing\LiveOpenAiClassificationProvider;
-use App\Services\Processing\LiveTextractOcrProvider;
-use Aws\Laravel\AwsFacade as Aws;
-use Aws\Result;
+use App\Services\Processing\OpenAiOcrProvider;
+use App\Services\Processing\ProviderDegradedException;
 use Illuminate\Support\Facades\Http;
 
 afterEach(function (): void {
@@ -16,37 +15,66 @@ afterEach(function (): void {
     \Mockery::close();
 });
 
-test('live textract provider extracts line text and class hint from s3 document', function (): void {
+test('openai ocr provider extracts text and class hint', function (): void {
+    config()->set('processing.openai.api_key', 'test-openai-key');
+    config()->set('processing.openai.model', 'gpt-4o-mini');
+    config()->set('processing.openai.ocr_model', 'gpt-4o-mini');
+    config()->set('processing.openai.base_url', 'https://api.openai.com/v1');
+    config()->set('processing.openai.timeout_seconds', 15);
+
     $document = createLiveProviderDocument('nda-contract.pdf');
 
-    $textractClient = \Mockery::mock();
-    $textractClient->shouldReceive('detectDocumentText')
-        ->once()
-        ->andReturn(new Result([
-            'Blocks' => [
-                ['BlockType' => 'PAGE', 'Id' => 'p1'],
-                ['BlockType' => 'LINE', 'Text' => 'Master Service Agreement'],
-                ['BlockType' => 'LINE', 'Text' => 'Effective date: 2026-02-24'],
+    Http::fake([
+        'https://api.openai.com/v1/chat/completions' => Http::response([
+            'id' => 'chatcmpl-ocr-1',
+            'choices' => [
+                [
+                    'message' => [
+                        'content' => '{"extracted_text":"Master Service Agreement\nEffective date: 2026-02-24","lines":["Master Service Agreement","Effective date: 2026-02-24"],"classification_hint":"contract"}',
+                    ],
+                ],
             ],
-            'DetectDocumentTextModelVersion' => '1.0',
-        ]));
+        ], 200),
+    ]);
 
-    Aws::shouldReceive('createClient')
-        ->once()
-        ->with('textract')
-        ->andReturn($textractClient);
+    /** @var OpenAiOcrProvider $provider */
+    $provider = app(OpenAiOcrProvider::class);
 
-    /** @var LiveTextractOcrProvider $provider */
-    $provider = app(LiveTextractOcrProvider::class);
+    $result = $provider->extract($document, [
+        'metadata' => [
+            'ocr_source_text' => 'Master Service Agreement Effective date: 2026-02-24',
+        ],
+    ]);
 
-    $result = $provider->extract($document, ['metadata' => []]);
-
-    expect($result['provider'])->toBe('textract')
+    expect($result['provider'])->toBe('openai')
         ->and($result['classification_hint'])->toBe('contract')
         ->and($result['extracted_text'])->toContain('Master Service Agreement')
-        ->and($result['payload']['block_count'])->toBe(3)
+        ->and($result['payload']['line_count'])->toBe(2)
         ->and($result['payload']['lines'])->toHaveCount(2)
-        ->and($result['metadata']['source'])->toBe('textract.detect_document_text');
+        ->and($result['metadata']['source'])->toBe('openai.chat.completions');
+});
+
+test('openai ocr provider marks rate limiting as degraded', function (): void {
+    config()->set('processing.openai.api_key', 'test-openai-key');
+    config()->set('processing.openai.base_url', 'https://api.openai.com/v1');
+    config()->set('processing.openai.timeout_seconds', 15);
+
+    $document = createLiveProviderDocument('degraded-ocr.pdf');
+
+    Http::fake([
+        'https://api.openai.com/v1/chat/completions' => Http::response([
+            'error' => ['message' => 'rate limited'],
+        ], 429),
+    ]);
+
+    /** @var OpenAiOcrProvider $provider */
+    $provider = app(OpenAiOcrProvider::class);
+
+    expect(fn () => $provider->extract($document, [
+        'metadata' => [
+            'ocr_source_text' => 'This text triggers a transient OpenAI response.',
+        ],
+    ]))->toThrow(ProviderDegradedException::class);
 });
 
 test('live openai provider classifies extracted text with confidence', function (): void {
@@ -59,7 +87,7 @@ test('live openai provider classifies extracted text with confidence', function 
     $extractedData = ExtractedData::query()->create([
         'tenant_id' => $document->tenant_id,
         'document_id' => $document->id,
-        'provider' => 'textract',
+        'provider' => 'openai',
         'extracted_text' => 'This contract sets terms between parties.',
         'payload' => [],
         'metadata' => [],
@@ -100,7 +128,7 @@ test('live openai provider falls back to routing heuristics for unknown labels',
     $extractedData = ExtractedData::query()->create([
         'tenant_id' => $document->tenant_id,
         'document_id' => $document->id,
-        'provider' => 'textract',
+        'provider' => 'openai',
         'extracted_text' => 'Invoice total due and payment receipt details.',
         'payload' => [],
         'metadata' => [],
