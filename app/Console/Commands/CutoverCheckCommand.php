@@ -11,7 +11,7 @@ class CutoverCheckCommand extends Command
 {
     protected $signature = 'docintern:cutover-check';
 
-    protected $description = 'Validate live infrastructure cutover configuration contracts';
+    protected $description = 'Validate unified development runtime configuration contracts';
 
     public function __construct(
         public ProcessingRuntimeConfigValidator $processingRuntimeConfigValidator,
@@ -21,25 +21,18 @@ class CutoverCheckCommand extends Command
 
     public function handle(): int
     {
-        $providerMode = strtolower(trim((string) config('processing.provider_mode', 'simulated')));
-        $this->line(sprintf('Provider mode: %s', $providerMode));
+        $this->line('Runtime profile: development-first');
 
         try {
             $this->processingRuntimeConfigValidator->validateOrFail();
         } catch (InvalidArgumentException $exception) {
-            $this->error('Cutover contract check failed.');
+            $this->error('Environment contract check failed.');
             $this->line($exception->getMessage());
 
             return SymfonyCommand::FAILURE;
         }
 
-        if ($providerMode === 'live') {
-            $this->info('Cutover contract check passed for live provider mode.');
-
-            return SymfonyCommand::SUCCESS;
-        }
-
-        $this->info('Cutover contract check passed for simulated provider mode.');
+        $this->info('Environment contract check passed.');
 
         return SymfonyCommand::SUCCESS;
     }
