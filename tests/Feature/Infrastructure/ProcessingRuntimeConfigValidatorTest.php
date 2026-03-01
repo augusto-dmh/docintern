@@ -2,45 +2,35 @@
 
 use App\Support\ProcessingRuntimeConfigValidator;
 
-test('simulated provider mode passes validation without live contracts', function (): void {
-    config()->set('processing.provider_mode', 'simulated');
-
-    app(ProcessingRuntimeConfigValidator::class)->validateOrFail();
-
-    expect(true)->toBeTrue();
-});
-
-test('live provider mode reports missing required configuration keys', function (): void {
-    config()->set('processing.provider_mode', 'live');
+test('runtime validator reports missing required unified development keys', function (): void {
     config()->set('processing.ocr_provider', 'simulated');
     config()->set('processing.classification_provider', 'simulated');
     config()->set('filesystems.default', 'local');
     config()->set('processing.queue_connection', 'sync');
+    config()->set('aws.credentials.key', '');
+    config()->set('aws.credentials.secret', '');
     config()->set('aws.region', '');
     config()->set('filesystems.disks.s3.bucket', '');
-    config()->set('queue.connections.rabbitmq.management.host', '');
-    config()->set('queue.connections.rabbitmq.management.username', '');
-    config()->set('queue.connections.rabbitmq.management.password', '');
-    config()->set('queue.connections.rabbitmq.management.vhost', '');
     config()->set('processing.openai.api_key', '');
 
     try {
         app(ProcessingRuntimeConfigValidator::class)->validateOrFail();
-        $this->fail('Expected live mode validation to fail.');
+        $this->fail('Expected runtime validation to fail.');
     } catch (\InvalidArgumentException $exception) {
         expect($exception->getMessage())
-            ->toContain('PROCESSING_OCR_PROVIDER must be set to [live].')
-            ->toContain('PROCESSING_CLASSIFICATION_PROVIDER must be set to [live].')
+            ->toContain('PROCESSING_OCR_PROVIDER must be set to [openai].')
+            ->toContain('PROCESSING_CLASSIFICATION_PROVIDER must be set to [openai].')
             ->toContain('FILESYSTEM_DISK must be set to [s3].')
             ->toContain('PROCESSING_QUEUE_CONNECTION must be set to [rabbitmq].')
-            ->toContain('AWS_BUCKET must be set for live mode.')
-            ->toContain('RABBITMQ_MANAGEMENT_PASSWORD must be set for live mode.')
-            ->toContain('OPENAI_API_KEY must be set for live mode.');
+            ->toContain('AWS_ACCESS_KEY_ID must be set for development runtime.')
+            ->toContain('AWS_SECRET_ACCESS_KEY must be set for development runtime.')
+            ->toContain('AWS_BUCKET must be set for development runtime.')
+            ->toContain('OPENAI_API_KEY must be set for development runtime.');
     }
 });
 
-test('live provider mode fails when providers are not configured as live', function (): void {
-    configureLiveModeContractsForValidation();
+test('runtime validator fails when providers are not configured as openai', function (): void {
+    configureRuntimeContractsForValidation();
 
     config()->set('processing.ocr_provider', 'simulated');
     config()->set('processing.classification_provider', 'simulated');
@@ -50,23 +40,20 @@ test('live provider mode fails when providers are not configured as live', funct
         $this->fail('Expected provider configuration validation to fail.');
     } catch (\InvalidArgumentException $exception) {
         expect($exception->getMessage())
-            ->toContain('PROCESSING_OCR_PROVIDER must be set to [live].')
-            ->toContain('PROCESSING_CLASSIFICATION_PROVIDER must be set to [live].');
+            ->toContain('PROCESSING_OCR_PROVIDER must be set to [openai].')
+            ->toContain('PROCESSING_CLASSIFICATION_PROVIDER must be set to [openai].');
     }
 });
 
-function configureLiveModeContractsForValidation(): void
+function configureRuntimeContractsForValidation(): void
 {
-    config()->set('processing.provider_mode', 'live');
-    config()->set('processing.ocr_provider', 'live');
-    config()->set('processing.classification_provider', 'live');
+    config()->set('processing.ocr_provider', 'openai');
+    config()->set('processing.classification_provider', 'openai');
     config()->set('processing.queue_connection', 'rabbitmq');
     config()->set('filesystems.default', 's3');
+    config()->set('aws.credentials.key', 'aws-key');
+    config()->set('aws.credentials.secret', 'aws-secret');
     config()->set('aws.region', 'us-east-1');
     config()->set('filesystems.disks.s3.bucket', 'docintern-production');
-    config()->set('queue.connections.rabbitmq.management.host', 'rabbitmq.example.com');
-    config()->set('queue.connections.rabbitmq.management.username', 'docintern');
-    config()->set('queue.connections.rabbitmq.management.password', 'secret');
-    config()->set('queue.connections.rabbitmq.management.vhost', '/docintern');
     config()->set('processing.openai.api_key', 'test-openai-key');
 }
