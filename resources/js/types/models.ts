@@ -116,3 +116,17 @@ export type QueueHealthSnapshot = {
     summary: QueueHealthSummary;
     error: string | null;
 };
+
+export type DashboardPipelineDocument = {
+    id: number;
+    title: string;
+    status: DocumentStatus;
+    matter_title: string | null;
+    updated_at: string;
+};
+
+export type DashboardStats = {
+    processed_today: number;
+    pending_review: number;
+    failed: number;
+};

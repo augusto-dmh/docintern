@@ -1,0 +1,117 @@
+import { onBeforeUnmount } from 'vue';
+import { getEcho } from '@/lib/echo';
+import type { DocumentStatus } from '@/types';
+
+export type DocumentStatusUpdatedPayload = {
+    document_id: number;
+    tenant_id: string;
+    status_from: DocumentStatus | null;
+    status_to: DocumentStatus;
+    event: string;
+    trace_id: string;
+    occurred_at: string;
+};
+
+type UseDocumentChannelOptions = {
+    tenantId?: string | null;
+    documentId?: number | null;
+    onStatusUpdated: (payload: DocumentStatusUpdatedPayload) => void;
+};
+
+function isDocumentStatus(value: string): value is DocumentStatus {
+    return [
+        'uploaded',
+        'scanning',
+        'scan_passed',
+        'scan_failed',
+        'extracting',
+        'extraction_failed',
+        'classifying',
+        'classification_failed',
+        'ready_for_review',
+        'reviewed',
+        'approved',
+    ].includes(value);
+}
+
+function normalizePayload(
+    payload: unknown,
+): DocumentStatusUpdatedPayload | null {
+    if (typeof payload !== 'object' || payload === null) {
+        return null;
+    }
+
+    const candidatePayload = payload as Record<string, unknown>;
+    const statusTo = candidatePayload.status_to;
+    const statusFrom = candidatePayload.status_from;
+
+    if (
+        typeof candidatePayload.document_id !== 'number' ||
+        typeof candidatePayload.tenant_id !== 'string' ||
+        typeof statusTo !== 'string' ||
+        !isDocumentStatus(statusTo) ||
+        typeof candidatePayload.event !== 'string' ||
+        typeof candidatePayload.trace_id !== 'string' ||
+        typeof candidatePayload.occurred_at !== 'string'
+    ) {
+        return null;
+    }
+
+    if (statusFrom !== null && typeof statusFrom !== 'string') {
+        return null;
+    }
+
+    if (typeof statusFrom === 'string' && !isDocumentStatus(statusFrom)) {
+        return null;
+    }
+
+    return {
+        document_id: candidatePayload.document_id,
+        tenant_id: candidatePayload.tenant_id,
+        status_from: statusFrom,
+        status_to: statusTo,
+        event: candidatePayload.event,
+        trace_id: candidatePayload.trace_id,
+        occurred_at: candidatePayload.occurred_at,
+    };
+}
+
+export function useDocumentChannel(options: UseDocumentChannelOptions): void {
+    const echo = getEcho();
+
+    if (!echo) {
+        return;
+    }
+
+    const subscribedChannels: string[] = [];
+    const listenForUpdates = (channelName: string): void => {
+        echo.private(channelName).listen(
+            '.document.status.updated',
+            (payload: unknown): void => {
+                const normalizedPayload = normalizePayload(payload);
+
+                if (!normalizedPayload) {
+                    return;
+                }
+
+                options.onStatusUpdated(normalizedPayload);
+            },
+        );
+
+        subscribedChannels.push(channelName);
+    };
+
+    if (options.tenantId) {
+        listenForUpdates(`tenant.${options.tenantId}.documents`);
+    }
+
+    if (options.documentId) {
+        listenForUpdates(`document.${options.documentId}`);
+    }
+
+    onBeforeUnmount((): void => {
+        subscribedChannels.forEach((channelName) => {
+            echo.leave(channelName);
+        });
+    });
+}
