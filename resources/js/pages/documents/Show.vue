@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
+import { ref, watch } from 'vue';
 import DocumentController from '@/actions/App/Http/Controllers/DocumentController';
 import MatterController from '@/actions/App/Http/Controllers/MatterController';
 import DocumentExperienceFrame from '@/components/documents/DocumentExperienceFrame.vue';
 import DocumentExperienceSurface from '@/components/documents/DocumentExperienceSurface.vue';
 import DocumentStatusBadge from '@/components/documents/DocumentStatusBadge.vue';
 import { Button } from '@/components/ui/button';
+import { useDocumentChannel } from '@/composables/useDocumentChannel';
 import AppLayout from '@/layouts/AppLayout.vue';
 import {
     type BreadcrumbItem,
@@ -23,6 +25,7 @@ const props = defineProps<{
 const permissions = usePage().props.auth.permissions;
 const canEditDocuments = permissions.includes('edit documents');
 const canApproveDocuments = permissions.includes('approve documents');
+const liveStatus = ref(props.document.status);
 const reviewForm = useForm({});
 const approveForm = useForm({});
 
@@ -107,11 +110,11 @@ function formatConfidence(value: number | string | null | undefined): string {
 }
 
 function canMarkReviewed(): boolean {
-    return canApproveDocuments && props.document.status === 'ready_for_review';
+    return canApproveDocuments && liveStatus.value === 'ready_for_review';
 }
 
 function canApproveDocument(): boolean {
-    return canApproveDocuments && props.document.status === 'reviewed';
+    return canApproveDocuments && liveStatus.value === 'reviewed';
 }
 
 function markReviewed(): void {
@@ -125,6 +128,25 @@ function approveDocument(): void {
         preserveScroll: true,
     });
 }
+
+watch(
+    () => props.document.status,
+    (status) => {
+        liveStatus.value = status;
+    },
+);
+
+useDocumentChannel({
+    tenantId: props.document.tenant_id,
+    documentId: props.document.id,
+    onStatusUpdated: (payload) => {
+        if (payload.document_id !== props.document.id) {
+            return;
+        }
+
+        liveStatus.value = payload.status_to;
+    },
+});
 </script>
 
 <template>
@@ -139,7 +161,7 @@ function approveDocument(): void {
             <template #description>
                 <span class="inline-flex items-center gap-2">
                     <span class="doc-subtle text-sm">Current status</span>
-                    <DocumentStatusBadge :status="document.status" />
+                    <DocumentStatusBadge :status="liveStatus" />
                 </span>
             </template>
 
@@ -235,7 +257,7 @@ function approveDocument(): void {
                             Status
                         </dt>
                         <dd class="mt-1">
-                            <DocumentStatusBadge :status="document.status" />
+                            <DocumentStatusBadge :status="liveStatus" />
                         </dd>
                     </div>
 

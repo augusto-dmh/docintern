@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, usePage } from '@inertiajs/vue3';
+import { ref, watch } from 'vue';
 import DocumentController from '@/actions/App/Http/Controllers/DocumentController';
 import MatterController from '@/actions/App/Http/Controllers/MatterController';
 import DocumentEmptyState from '@/components/documents/DocumentEmptyState.vue';
@@ -7,20 +8,24 @@ import DocumentExperienceFrame from '@/components/documents/DocumentExperienceFr
 import DocumentExperienceSurface from '@/components/documents/DocumentExperienceSurface.vue';
 import DocumentStatusBadge from '@/components/documents/DocumentStatusBadge.vue';
 import { Button } from '@/components/ui/button';
+import { useDocumentChannel } from '@/composables/useDocumentChannel';
 import AppLayout from '@/layouts/AppLayout.vue';
 import {
     type BreadcrumbItem,
     type Document,
+    type DocumentStatus,
     type DocumentExperienceGuardrails,
     type PaginatedData,
 } from '@/types';
 
-defineProps<{
+const props = defineProps<{
     documents: PaginatedData<Document>;
     documentExperience: DocumentExperienceGuardrails;
 }>();
 
-const permissions = usePage().props.auth.permissions;
+const page = usePage();
+const permissions = page.props.auth.permissions;
+const realtimeDocuments = ref<Document[]>([...props.documents.data]);
 const canEditDocuments = permissions.includes('edit documents');
 
 const breadcrumbItems: BreadcrumbItem[] = [
@@ -47,6 +52,34 @@ function formatFileSize(bytes: number): string {
 
     return `${Math.max(1, Math.round(bytes / 1024))} KB`;
 }
+
+watch(
+    () => props.documents.data,
+    (documents) => {
+        realtimeDocuments.value = [...documents];
+    },
+);
+
+useDocumentChannel({
+    tenantId: page.props.tenant?.id ?? null,
+    onStatusUpdated: (payload) => {
+        const documentIndex = realtimeDocuments.value.findIndex(
+            (document) => document.id === payload.document_id,
+        );
+
+        if (documentIndex === -1) {
+            return;
+        }
+
+        const currentDocument = realtimeDocuments.value[documentIndex];
+
+        realtimeDocuments.value[documentIndex] = {
+            ...currentDocument,
+            status: payload.status_to as DocumentStatus,
+            updated_at: payload.occurred_at,
+        };
+    },
+});
 </script>
 
 <template>
@@ -60,7 +93,7 @@ function formatFileSize(bytes: number): string {
             description="Searchable matter documents with immutable storage and traceable activity."
         >
             <DocumentEmptyState
-                v-if="documents.data.length === 0"
+                v-if="realtimeDocuments.length === 0"
                 :document-experience="documentExperience"
                 title="No documents archived yet"
                 description="Upload the first file from a matter workspace to start building this tenant's ledger."
@@ -83,7 +116,7 @@ function formatFileSize(bytes: number): string {
             >
                 <div class="grid gap-3 p-4 sm:p-5 md:hidden">
                     <article
-                        v-for="document in documents.data"
+                        v-for="document in realtimeDocuments"
                         :key="`mobile-${document.id}`"
                         class="doc-grid-line rounded-xl border p-4"
                     >
@@ -139,9 +172,7 @@ function formatFileSize(bytes: number): string {
                 <div class="hidden overflow-x-auto md:block">
                     <table class="min-w-full text-sm">
                         <thead>
-                            <tr
-                                class="doc-grid-line border-b bg-muted/75"
-                            >
+                            <tr class="doc-grid-line border-b bg-muted/75">
                                 <th
                                     class="px-4 py-3 text-left text-xs font-semibold tracking-[0.12em] uppercase"
                                 >
@@ -181,7 +212,7 @@ function formatFileSize(bytes: number): string {
                         </thead>
                         <tbody>
                             <tr
-                                v-for="document in documents.data"
+                                v-for="document in realtimeDocuments"
                                 :key="document.id"
                                 class="doc-grid-line border-b last:border-0"
                             >
