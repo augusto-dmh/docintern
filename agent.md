@@ -144,6 +144,12 @@ All five steps are mandatory. Do not push if any step fails.
 - Never include unrelated dirty files, local notes, or plan artifacts in the PR.
 - Before commit, verify scope with `git status --short` and `git diff --cached --stat`.
 
+### Deletion Safety (Critical)
+
+- Never delete or restore-away tracked files from local or remote branches unless the user explicitly asks to delete those exact files.
+- If a commit/PR accidentally removes files, stop and restore the files in a dedicated corrective commit before any further changes.
+- Before pushing, always verify no unintended deletions with `git diff --cached --name-status` and confirm no unexpected `D` entries.
+
 ### Responsibility Split (Enforced)
 
 - The agent is responsible for all git and PR handling:
@@ -156,6 +162,17 @@ All five steps are mandatory. Do not push if any step fails.
   - approving the PR
   - merging/closing the PR
 - Do not stop at "ready to push" or "open PR manually" unless the user explicitly asks to do those steps themselves.
+
+### QA Handoff (Required)
+
+- Every final agent response that includes code/config/runtime changes must end with a `QA Plan` section.
+- The `QA Plan` must be step-by-step and executable by a non-author, including:
+  - required environment variables/secrets (if any),
+  - exact commands to run,
+  - expected outcomes per step,
+  - failure signals and where to inspect logs.
+- Keep the QA plan scoped to the actual PR diff; do not include generic or unrelated checks.
+- If manual UI verification is needed, include exact navigation paths and expected UI states.
 
 Creating a PR:
 
