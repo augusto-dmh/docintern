@@ -67,19 +67,19 @@ export function documentStatusToneClass(status: DocumentStatusLike): string {
     }
 
     if (
-        status === 'failed'
-        || status === 'scan_failed'
-        || status === 'extraction_failed'
-        || status === 'classification_failed'
+        status === 'failed' ||
+        status === 'scan_failed' ||
+        status === 'extraction_failed' ||
+        status === 'classification_failed'
     ) {
         return 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300';
     }
 
     if (
-        status === 'scanning'
-        || status === 'scan_passed'
-        || status === 'extracting'
-        || status === 'classifying'
+        status === 'scanning' ||
+        status === 'scan_passed' ||
+        status === 'extracting' ||
+        status === 'classifying'
     ) {
         return 'bg-sky-100 text-sky-700 dark:bg-sky-900/50 dark:text-sky-300';
     }

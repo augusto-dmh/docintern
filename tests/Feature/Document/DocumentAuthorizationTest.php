@@ -118,6 +118,60 @@ test('roles can or cannot delete documents based on permission', function (
     $canDelete ? $response->assertRedirect() : $response->assertForbidden();
 })->with('document-role-matrix');
 
+test('roles can or cannot mark documents as reviewed based on permission', function (
+    string $role,
+    bool $canView,
+    bool $canCreate,
+    bool $canUpdate,
+    bool $canDelete,
+    bool $canApprove,
+): void {
+    [$tenant, $user, $matter, $document] = createDocumentAuthContext($role);
+    tenancy()->initialize($tenant);
+    $document->update(['status' => 'ready_for_review']);
+
+    $response = $this->actingAs($user)
+        ->withHeaders(['X-Tenant-ID' => $tenant->id])
+        ->post(route('documents.review', $document));
+
+    if ($canApprove) {
+        $response->assertRedirect(route('documents.show', $document));
+        expect($document->fresh()->status)->toBe('reviewed');
+
+        return;
+    }
+
+    $response->assertForbidden();
+    expect($document->fresh()->status)->toBe('ready_for_review');
+})->with('document-role-matrix');
+
+test('roles can or cannot approve documents based on permission', function (
+    string $role,
+    bool $canView,
+    bool $canCreate,
+    bool $canUpdate,
+    bool $canDelete,
+    bool $canApprove,
+): void {
+    [$tenant, $user, $matter, $document] = createDocumentAuthContext($role);
+    tenancy()->initialize($tenant);
+    $document->update(['status' => 'reviewed']);
+
+    $response = $this->actingAs($user)
+        ->withHeaders(['X-Tenant-ID' => $tenant->id])
+        ->post(route('documents.approve', $document));
+
+    if ($canApprove) {
+        $response->assertRedirect(route('documents.show', $document));
+        expect($document->fresh()->status)->toBe('approved');
+
+        return;
+    }
+
+    $response->assertForbidden();
+    expect($document->fresh()->status)->toBe('reviewed');
+})->with('document-role-matrix');
+
 test('approve permission is enforced by policy', function (
     string $role,
     bool $canView,

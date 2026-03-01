@@ -8,11 +8,14 @@ use App\Models\AuditLog;
 use App\Models\Document;
 use App\Models\Matter;
 use App\Models\User;
+use App\Services\DocumentStatusTransitionService;
 use App\Services\DocumentUploadService;
 use App\Support\DocumentExperienceGuardrails;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -20,6 +23,7 @@ class DocumentController extends Controller
 {
     public function __construct(
         public DocumentUploadService $documentUploadService,
+        public DocumentStatusTransitionService $documentStatusTransitionService,
     ) {}
 
     public function index(): Response
@@ -70,7 +74,7 @@ class DocumentController extends Controller
         $this->authorize('view', $document);
 
         $this->logDocumentAction($document, $request, 'viewed');
-        $document->load('matter', 'uploader');
+        $document->load('matter', 'uploader', 'classification');
         $recentActivity = $document->auditLogs()
             ->with('user:id,name')
             ->latest()
@@ -103,6 +107,24 @@ class DocumentController extends Controller
         $document->update($request->validated());
 
         return to_route('documents.show', $document);
+    }
+
+    public function review(Request $request, Document $document): RedirectResponse
+    {
+        return $this->transitionForManualReview(
+            request: $request,
+            document: $document,
+            toStatus: 'reviewed',
+        );
+    }
+
+    public function approve(Request $request, Document $document): RedirectResponse
+    {
+        return $this->transitionForManualReview(
+            request: $request,
+            document: $document,
+            toStatus: 'approved',
+        );
     }
 
     public function destroy(Request $request, Document $document): RedirectResponse
@@ -161,5 +183,37 @@ class DocumentController extends Controller
                 ? $metadata['ip_address']
                 : null,
         ];
+    }
+
+    protected function transitionForManualReview(Request $request, Document $document, string $toStatus): RedirectResponse
+    {
+        $this->authorize('approve', $document);
+
+        $fromStatus = (string) $document->status;
+
+        if (! $this->documentStatusTransitionService->canTransition($fromStatus, $toStatus)) {
+            throw ValidationException::withMessages([
+                'status' => sprintf(
+                    'Document cannot transition from [%s] to [%s].',
+                    $fromStatus,
+                    $toStatus,
+                ),
+            ]);
+        }
+
+        $this->documentStatusTransitionService->transition(
+            document: $document,
+            toStatus: $toStatus,
+            consumerName: 'manual-review',
+            messageId: (string) Str::uuid(),
+            metadata: [
+                'source' => 'documents.show',
+                'actor_user_id' => $request->user()?->id,
+            ],
+        );
+
+        $this->logDocumentAction($document->fresh(), $request, $toStatus);
+
+        return to_route('documents.show', $document);
     }
 }

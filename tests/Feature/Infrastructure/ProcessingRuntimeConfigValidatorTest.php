@@ -22,7 +22,7 @@ test('live provider mode reports missing required configuration keys', function 
     config()->set('queue.connections.rabbitmq.management.username', '');
     config()->set('queue.connections.rabbitmq.management.password', '');
     config()->set('queue.connections.rabbitmq.management.vhost', '');
-    config()->set('processing.comprehend.endpoint_arn', '');
+    config()->set('processing.openai.api_key', '');
 
     try {
         app(ProcessingRuntimeConfigValidator::class)->validateOrFail();
@@ -35,7 +35,7 @@ test('live provider mode reports missing required configuration keys', function 
             ->toContain('PROCESSING_QUEUE_CONNECTION must be set to [rabbitmq].')
             ->toContain('AWS_BUCKET must be set for live mode.')
             ->toContain('RABBITMQ_MANAGEMENT_PASSWORD must be set for live mode.')
-            ->toContain('PROCESSING_COMPREHEND_ENDPOINT_ARN must be set for live mode.');
+            ->toContain('OPENAI_API_KEY must be set for live mode.');
     }
 });
 
@@ -68,5 +68,5 @@ function configureLiveModeContractsForValidation(): void
     config()->set('queue.connections.rabbitmq.management.username', 'docintern');
     config()->set('queue.connections.rabbitmq.management.password', 'secret');
     config()->set('queue.connections.rabbitmq.management.vhost', '/docintern');
-    config()->set('processing.comprehend.endpoint_arn', 'arn:aws:comprehend:us-east-1:123456789012:document-classifier-endpoint/docintern');
+    config()->set('processing.openai.api_key', 'test-openai-key');
 }
