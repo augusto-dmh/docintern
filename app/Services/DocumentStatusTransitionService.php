@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Events\DocumentProcessingEvent;
+use App\Events\DocumentStatusUpdated;
 use App\Models\Document;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -40,8 +41,7 @@ class DocumentStatusTransitionService
         string $consumerName = 'pipeline-transition',
         ?string $messageId = null,
         array $metadata = [],
-    ): Document
-    {
+    ): Document {
         /**
          * @var array{
          *     document: Document,
@@ -105,6 +105,20 @@ class DocumentStatusTransitionService
             timestamp: now()->toImmutable(),
             metadata: $transitionResult['metadata'],
             retryCount: 0,
+        ));
+
+        event(new DocumentStatusUpdated(
+            documentId: $transitionResult['document']->id,
+            tenantId: $transitionResult['document']->tenant_id,
+            statusFrom: is_string($transitionResult['metadata']['from_status'] ?? null)
+                ? $transitionResult['metadata']['from_status']
+                : null,
+            statusTo: is_string($transitionResult['metadata']['to_status'] ?? null)
+                ? $transitionResult['metadata']['to_status']
+                : $toStatus,
+            event: 'document.status.transitioned',
+            traceId: $transitionResult['trace_id'],
+            occurredAt: now()->toImmutable(),
         ));
 
         return $transitionResult['document'];
