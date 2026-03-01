@@ -134,7 +134,7 @@ class OpenAiOcrProvider implements OcrProvider
 
     protected function resolveTimeoutSeconds(): int
     {
-        $timeoutSeconds = (int) config('processing.openai.timeout_seconds', 15);
+        $timeoutSeconds = (int) config('processing.openai.timeout_seconds', 30);
 
         return max(1, $timeoutSeconds);
     }
@@ -184,6 +184,12 @@ class OpenAiOcrProvider implements OcrProvider
             $sourceText = trim($this->readTextFromS3($document));
         }
 
+        $sourceText = $this->normalizeSourceText($sourceText);
+
+        if ($sourceText !== '' && $this->isLikelyBinaryNoise($sourceText)) {
+            $sourceText = '';
+        }
+
         if ($sourceText === '') {
             $sourceText = trim($document->title.' '.$document->file_name);
         }
@@ -192,7 +198,7 @@ class OpenAiOcrProvider implements OcrProvider
             throw new RuntimeException('Document source text is unavailable for OpenAI OCR.');
         }
 
-        return mb_substr($sourceText, 0, 12000);
+        return mb_substr($sourceText, 0, 3000);
     }
 
     protected function readTextFromS3(Document $document): string
@@ -207,10 +213,30 @@ class OpenAiOcrProvider implements OcrProvider
             );
         }
 
-        $utf8 = mb_convert_encoding($contents, 'UTF-8', 'UTF-8');
-        $normalized = preg_replace('/[^\PC\s]/u', '', $utf8);
+        $normalized = preg_replace('/[^\x09\x0A\x0D\x20-\x7E]/', ' ', $contents);
 
         return is_string($normalized) ? trim($normalized) : '';
+    }
+
+    protected function normalizeSourceText(string $sourceText): string
+    {
+        $normalized = preg_replace('/\s+/', ' ', trim($sourceText));
+
+        return is_string($normalized) ? trim($normalized) : '';
+    }
+
+    protected function isLikelyBinaryNoise(string $sourceText): bool
+    {
+        $length = strlen($sourceText);
+
+        if ($length === 0) {
+            return true;
+        }
+
+        preg_match_all('/[A-Za-z0-9]/', $sourceText, $matches);
+        $alphanumericCount = count($matches[0]);
+
+        return ($alphanumericCount / $length) < 0.2;
     }
 
     /**
