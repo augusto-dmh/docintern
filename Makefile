@@ -1,10 +1,7 @@
-.PHONY: up up-infrastructure down build shell composer artisan migrate seed fresh test npm logs s3-ls s3-shell worker-logs worker-restart worker-shell rabbitmq-queues scheduler-logs cutover-check queue-health-check
+.PHONY: up down build shell composer artisan migrate seed fresh test npm logs s3-ls s3-shell worker-logs worker-restart worker-shell rabbitmq-queues scheduler-logs environment-check cutover-check queue-health-check
 
 up:
 	docker compose up -d
-
-up-infrastructure:
-	docker compose -f docker-compose.yaml -f docker-compose.infrastructure.yaml --profile local-emulation up -d
 
 down:
 	docker compose down
@@ -60,8 +57,10 @@ rabbitmq-queues:
 scheduler-logs:
 	docker compose logs -f scheduler
 
-cutover-check:
+environment-check:
 	docker compose exec app php artisan docintern:cutover-check
+
+cutover-check: environment-check
 
 queue-health-check:
 	docker compose exec app php artisan docintern:queue-health-check
