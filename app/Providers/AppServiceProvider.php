@@ -107,6 +107,12 @@ class AppServiceProvider extends ServiceProvider
 
         $commandName = trim((string) ($_SERVER['argv'][1] ?? ''));
 
-        return in_array($commandName, ['docintern:cutover-check', 'test', 'wayfinder:generate'], true);
+        return ! in_array($commandName, [
+            'queue:work',
+            'queue:listen',
+            'schedule:work',
+            'schedule:run',
+            'horizon',
+        ], true);
     }
 }
