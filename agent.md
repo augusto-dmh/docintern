@@ -140,6 +140,8 @@ All five steps are mandatory. Do not push if any step fails.
 ### PR File Scope (Strict)
 
 - Do not include markdown files (`*.md`) in PRs unless the user explicitly asks for that specific markdown file change.
+- Planning markdown files (phase plans, strategy docs, local planning notes) must stay out of PR commits by default.
+- If planning markdown files are accidentally staged, unstage/remove them from the PR scope only; do not delete the user's local copies.
 - Stage only files touched to fulfill the current chat request.
 - Never include unrelated dirty files, local notes, or plan artifacts in the PR.
 - Before commit, verify scope with `git status --short` and `git diff --cached --stat`.
