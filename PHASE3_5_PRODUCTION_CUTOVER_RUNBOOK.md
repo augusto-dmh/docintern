@@ -54,7 +54,15 @@ This runbook covers the external services and environment contract required to r
   - `MAIL_FROM_NAME`
 - For SMTP, also configure host/port/username/password/scheme.
 
-### 6) Secrets
+### 6) Classification provider (OpenAI)
+
+- Configure live classification keys:
+  - `OPENAI_API_KEY`
+  - `PROCESSING_OPENAI_MODEL` (for example `gpt-4o-mini`)
+  - `OPENAI_BASE_URL=https://api.openai.com/v1`
+  - `PROCESSING_OPENAI_TIMEOUT=15`
+
+### 7) Secrets
 
 - Store credentials in a secrets manager (do not commit to git).
 - Keep separate secret sets for staging and production.
@@ -67,7 +75,8 @@ This runbook covers the external services and environment contract required to r
 - `DOCINTERN_PROVIDER_MODE=live`
 - `PROCESSING_OCR_PROVIDER=live`
 - `PROCESSING_CLASSIFICATION_PROVIDER=live`
-- `PROCESSING_COMPREHEND_ENDPOINT_ARN` points to a live Comprehend classifier endpoint
+- `OPENAI_API_KEY` is set with a valid production key
+- `PROCESSING_OPENAI_MODEL` is set
 - `PROCESSING_QUEUE_CONNECTION=rabbitmq`
 - `FILESYSTEM_DISK=s3`
 - `php artisan docintern:cutover-check` succeeds
@@ -158,7 +167,10 @@ RABBITMQ_MANAGEMENT_TIMEOUT=5
 DOCINTERN_PROVIDER_MODE=live
 PROCESSING_OCR_PROVIDER=live
 PROCESSING_CLASSIFICATION_PROVIDER=live
-PROCESSING_COMPREHEND_ENDPOINT_ARN=arn:aws:comprehend:us-east-1:123456789012:document-classifier-endpoint/docintern
+OPENAI_API_KEY=REPLACE_WITH_OPENAI_API_KEY
+OPENAI_BASE_URL=https://api.openai.com/v1
+PROCESSING_OPENAI_MODEL=gpt-4o-mini
+PROCESSING_OPENAI_TIMEOUT=15
 PROCESSING_PROVIDER_CIRCUIT_FAILURE_THRESHOLD=3
 PROCESSING_PROVIDER_CIRCUIT_COOLDOWN_SECONDS=60
 PROCESSING_PROVIDER_DEGRADED_REQUEUE_DELAY_SECONDS=30
