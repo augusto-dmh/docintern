@@ -30,8 +30,11 @@ return [
     'queue_connection' => env('PROCESSING_QUEUE_CONNECTION', env('QUEUE_CONNECTION', 'sync')),
     'ocr_provider' => $ocrProvider,
     'classification_provider' => $classificationProvider,
-    'comprehend' => [
-        'endpoint_arn' => env('PROCESSING_COMPREHEND_ENDPOINT_ARN'),
+    'openai' => [
+        'api_key' => env('OPENAI_API_KEY'),
+        'model' => env('PROCESSING_OPENAI_MODEL', 'gpt-4o-mini'),
+        'base_url' => env('OPENAI_BASE_URL', 'https://api.openai.com/v1'),
+        'timeout_seconds' => (int) env('PROCESSING_OPENAI_TIMEOUT', 15),
     ],
     'provider_circuit' => [
         'failure_threshold' => (int) env('PROCESSING_PROVIDER_CIRCUIT_FAILURE_THRESHOLD', 3),
@@ -90,8 +93,8 @@ return [
                 'env' => 'RABBITMQ_MANAGEMENT_VHOST',
             ],
             [
-                'path' => 'processing.comprehend.endpoint_arn',
-                'env' => 'PROCESSING_COMPREHEND_ENDPOINT_ARN',
+                'path' => 'processing.openai.api_key',
+                'env' => 'OPENAI_API_KEY',
             ],
         ],
     ],

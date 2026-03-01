@@ -67,11 +67,21 @@ This runbook covers the external services and environment contract required to r
 - `DOCINTERN_PROVIDER_MODE=live`
 - `PROCESSING_OCR_PROVIDER=live`
 - `PROCESSING_CLASSIFICATION_PROVIDER=live`
-- `PROCESSING_COMPREHEND_ENDPOINT_ARN` points to a live Comprehend classifier endpoint
+- `OPENAI_API_KEY` is configured for live classification
+- `PROCESSING_OPENAI_MODEL` is configured (or defaults to `gpt-4o-mini`)
 - `PROCESSING_QUEUE_CONNECTION=rabbitmq`
 - `FILESYSTEM_DISK=s3`
 - `php artisan docintern:cutover-check` succeeds
 - `php artisan docintern:queue-health-check` succeeds
+
+## Smoke test: classification and review
+
+1. Upload a document from `matters/{matter}/documents/create`.
+2. Open the document detail page (`/documents/{id}`) and wait for status `ready_for_review`.
+3. Confirm the classification panel is populated (provider/type/confidence).
+4. Click `Mark Reviewed` and confirm status changes to `reviewed`.
+5. Click `Approve Document` and confirm status changes to `approved`.
+6. Run `php artisan docintern:queue-health-check` and confirm queue metrics are still available.
 
 ## `.env.production` template
 
@@ -158,7 +168,10 @@ RABBITMQ_MANAGEMENT_TIMEOUT=5
 DOCINTERN_PROVIDER_MODE=live
 PROCESSING_OCR_PROVIDER=live
 PROCESSING_CLASSIFICATION_PROVIDER=live
-PROCESSING_COMPREHEND_ENDPOINT_ARN=arn:aws:comprehend:us-east-1:123456789012:document-classifier-endpoint/docintern
+OPENAI_API_KEY=REPLACE_WITH_OPENAI_API_KEY
+OPENAI_BASE_URL=https://api.openai.com/v1
+PROCESSING_OPENAI_MODEL=gpt-4o-mini
+PROCESSING_OPENAI_TIMEOUT=15
 PROCESSING_PROVIDER_CIRCUIT_FAILURE_THRESHOLD=3
 PROCESSING_PROVIDER_CIRCUIT_COOLDOWN_SECONDS=60
 PROCESSING_PROVIDER_DEGRADED_REQUEUE_DELAY_SECONDS=30

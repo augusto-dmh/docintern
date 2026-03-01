@@ -3,6 +3,7 @@
 use App\Models\AuditLog;
 use App\Models\Client;
 use App\Models\Document;
+use App\Models\DocumentClassification;
 use App\Models\Matter;
 use App\Models\Tenant;
 use App\Models\User;
@@ -164,6 +165,35 @@ test('document show page can be rendered and logs a view event', function () {
         ->exists())->toBeTrue();
 });
 
+test('document show page includes classification payload when present', function () {
+    [$tenant, $user, $matter] = createDocumentCrudContext();
+    $document = Document::factory()->readyForReview()->create([
+        'tenant_id' => $tenant->id,
+        'matter_id' => $matter->id,
+        'uploaded_by' => $user->id,
+    ]);
+
+    DocumentClassification::factory()->create([
+        'tenant_id' => $tenant->id,
+        'document_id' => $document->id,
+        'provider' => 'openai',
+        'type' => 'contract',
+        'confidence' => 0.91,
+    ]);
+
+    tenancy()->initialize($tenant);
+
+    $this->actingAs($user)
+        ->withHeaders(['X-Tenant-ID' => $tenant->id])
+        ->get(route('documents.show', $document))
+        ->assertSuccessful()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('documents/Show')
+            ->where('document.classification.provider', 'openai')
+            ->where('document.classification.type', 'contract')
+        );
+});
+
 test('document edit page can be rendered', function () {
     [$tenant, $user, $matter] = createDocumentCrudContext();
     $document = Document::factory()->create([
@@ -202,6 +232,69 @@ test('document can be updated', function () {
 
     $response->assertRedirect(route('documents.show', $document));
     expect($document->fresh()->title)->toBe('Updated Title');
+});
+
+test('document can be marked as reviewed from ready for review', function () {
+    [$tenant, $user, $matter] = createDocumentCrudContext();
+    $document = Document::factory()->readyForReview()->create([
+        'tenant_id' => $tenant->id,
+        'matter_id' => $matter->id,
+        'uploaded_by' => $user->id,
+    ]);
+    tenancy()->initialize($tenant);
+
+    $response = $this->actingAs($user)
+        ->withHeaders(['X-Tenant-ID' => $tenant->id])
+        ->post(route('documents.review', $document));
+
+    $response->assertRedirect(route('documents.show', $document));
+    expect($document->fresh()->status)->toBe('reviewed')
+        ->and(AuditLog::query()
+            ->where('auditable_type', Document::class)
+            ->where('auditable_id', $document->id)
+            ->where('action', 'reviewed')
+            ->exists())->toBeTrue();
+});
+
+test('document can be approved from reviewed', function () {
+    [$tenant, $user, $matter] = createDocumentCrudContext();
+    $document = Document::factory()->create([
+        'tenant_id' => $tenant->id,
+        'matter_id' => $matter->id,
+        'uploaded_by' => $user->id,
+        'status' => 'reviewed',
+    ]);
+    tenancy()->initialize($tenant);
+
+    $response = $this->actingAs($user)
+        ->withHeaders(['X-Tenant-ID' => $tenant->id])
+        ->post(route('documents.approve', $document));
+
+    $response->assertRedirect(route('documents.show', $document));
+    expect($document->fresh()->status)->toBe('approved')
+        ->and(AuditLog::query()
+            ->where('auditable_type', Document::class)
+            ->where('auditable_id', $document->id)
+            ->where('action', 'approved')
+            ->exists())->toBeTrue();
+});
+
+test('document review transition validation fails for invalid status', function () {
+    [$tenant, $user, $matter] = createDocumentCrudContext();
+    $document = Document::factory()->create([
+        'tenant_id' => $tenant->id,
+        'matter_id' => $matter->id,
+        'uploaded_by' => $user->id,
+        'status' => 'uploaded',
+    ]);
+    tenancy()->initialize($tenant);
+
+    $response = $this->actingAs($user)
+        ->withHeaders(['X-Tenant-ID' => $tenant->id])
+        ->post(route('documents.review', $document));
+
+    $response->assertSessionHasErrors(['status']);
+    expect($document->fresh()->status)->toBe('uploaded');
 });
 
 test('document can be destroyed and file is removed from s3', function () {

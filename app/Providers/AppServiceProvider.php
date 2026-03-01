@@ -3,7 +3,7 @@
 namespace App\Providers;
 
 use App\Services\Processing\ClassificationProvider;
-use App\Services\Processing\LiveComprehendClassificationProvider;
+use App\Services\Processing\LiveOpenAiClassificationProvider;
 use App\Services\Processing\LiveTextractOcrProvider;
 use App\Services\Processing\OcrProvider;
 use App\Services\Processing\SimulatedClassificationProvider;
@@ -41,7 +41,7 @@ class AppServiceProvider extends ServiceProvider
 
             return match ($provider) {
                 'simulated' => $app->make(SimulatedClassificationProvider::class),
-                'live' => $app->make(LiveComprehendClassificationProvider::class),
+                'live' => $app->make(LiveOpenAiClassificationProvider::class),
                 default => throw new InvalidArgumentException("Unsupported classification provider [{$provider}]."),
             };
         });
