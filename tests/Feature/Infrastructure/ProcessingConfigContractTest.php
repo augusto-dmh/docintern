@@ -1,30 +1,33 @@
 <?php
 
-test('processing provider mode defaults to simulated', function (): void {
+test('processing defaults to openai providers and rabbitmq connection', function (): void {
     withTemporaryEnvironment([
-        'DOCINTERN_PROVIDER_MODE' => null,
-        'PROCESSING_PROVIDER_MODE' => null,
         'PROCESSING_OCR_PROVIDER' => null,
         'PROCESSING_CLASSIFICATION_PROVIDER' => null,
+        'PROCESSING_QUEUE_CONNECTION' => null,
+        'QUEUE_CONNECTION' => null,
     ], function (): void {
-        /** @var array{provider_mode: string} $processingConfig */
+        /** @var array{ocr_provider: string, classification_provider: string, queue_connection: string} $processingConfig */
         $processingConfig = require base_path('config/processing.php');
 
-        expect($processingConfig['provider_mode'])->toBe('simulated');
+        expect($processingConfig['ocr_provider'])->toBe('openai')
+            ->and($processingConfig['classification_provider'])->toBe('openai')
+            ->and($processingConfig['queue_connection'])->toBe('rabbitmq');
     });
 });
 
-test('processing provider mode derives live when both providers are live', function (): void {
+test('processing provider env aliases no longer drive mode resolution', function (): void {
     withTemporaryEnvironment([
-        'DOCINTERN_PROVIDER_MODE' => null,
-        'PROCESSING_PROVIDER_MODE' => null,
-        'PROCESSING_OCR_PROVIDER' => 'live',
-        'PROCESSING_CLASSIFICATION_PROVIDER' => 'live',
+        'DOCINTERN_PROVIDER_MODE' => 'simulated',
+        'PROCESSING_PROVIDER_MODE' => 'live',
+        'PROCESSING_OCR_PROVIDER' => null,
+        'PROCESSING_CLASSIFICATION_PROVIDER' => null,
     ], function (): void {
-        /** @var array{provider_mode: string} $processingConfig */
+        /** @var array{ocr_provider: string, classification_provider: string} $processingConfig */
         $processingConfig = require base_path('config/processing.php');
 
-        expect($processingConfig['provider_mode'])->toBe('live');
+        expect($processingConfig['ocr_provider'])->toBe('openai')
+            ->and($processingConfig['classification_provider'])->toBe('openai');
     });
 });
 
