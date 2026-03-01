@@ -89,16 +89,6 @@ make queue-health-check
 
 See `PHASE3_5_PRODUCTION_CUTOVER_RUNBOOK.md` for external service setup and the `.env.production` template.
 
-## Reviewing classified documents
-
-After a successful upload and processing pipeline run:
-
-1. Open the document detail page (`/documents/{id}`).
-2. Wait for status `ready_for_review`.
-3. Check the `Classification` panel (provider/type/confidence).
-4. Click `Mark Reviewed`.
-5. Click `Approve Document`.
-
 ## Makefile commands
 
 | Command                       | Description                           |
