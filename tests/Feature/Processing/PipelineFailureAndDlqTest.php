@@ -20,6 +20,11 @@ afterEach(function () {
     tenancy()->end();
 });
 
+beforeEach(function (): void {
+    config()->set('processing.ocr_provider', 'simulated');
+    config()->set('processing.classification_provider', 'simulated');
+});
+
 function createFailureDocument(string $status, string $fileName = 'document.pdf'): Document
 {
     $tenant = Tenant::factory()->create();
@@ -179,7 +184,7 @@ test('classification provider degradation requeues classification with metadata'
     {
         public function classify(Document $document, ?ExtractedData $extractedData, array $payload): array
         {
-            throw new ProviderDegradedException('comprehend', 'ResourceUnavailableException');
+            throw new ProviderDegradedException('openai', 'Rate limit exceeded');
         }
     });
 
@@ -190,8 +195,8 @@ test('classification provider degradation requeues classification with metadata'
     expect($requeuedJob)->toBeInstanceOf(ClassificationConsumerJob::class)
         ->and($requeuedJob->queue)->toBe('queue.classify.general')
         ->and($requeuedJob->payload['metadata']['provider_degraded_attempt'] ?? null)->toBe(1)
-        ->and($requeuedJob->payload['metadata']['provider_degraded_provider'] ?? null)->toBe('comprehend')
-        ->and($requeuedJob->payload['metadata']['provider_degraded_reason'] ?? null)->toBe('ResourceUnavailableException')
+        ->and($requeuedJob->payload['metadata']['provider_degraded_provider'] ?? null)->toBe('openai')
+        ->and($requeuedJob->payload['metadata']['provider_degraded_reason'] ?? null)->toBe('Rate limit exceeded')
         ->and($requeuedJob->payload['retry_count'] ?? null)->toBe(1);
 });
 
@@ -242,7 +247,7 @@ test('classification degraded retries exhaustion dead letters and transitions to
     {
         public function classify(Document $document, ?ExtractedData $extractedData, array $payload): array
         {
-            throw new ProviderDegradedException('comprehend', 'ServiceUnavailableException');
+            throw new ProviderDegradedException('openai', 'Service unavailable');
         }
     });
 

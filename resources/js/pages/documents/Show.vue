@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link, usePage } from '@inertiajs/vue3';
+import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import DocumentController from '@/actions/App/Http/Controllers/DocumentController';
 import MatterController from '@/actions/App/Http/Controllers/MatterController';
 import DocumentExperienceFrame from '@/components/documents/DocumentExperienceFrame.vue';
@@ -22,6 +22,9 @@ const props = defineProps<{
 
 const permissions = usePage().props.auth.permissions;
 const canEditDocuments = permissions.includes('edit documents');
+const canApproveDocuments = permissions.includes('approve documents');
+const reviewForm = useForm({});
+const approveForm = useForm({});
 
 const breadcrumbItems: BreadcrumbItem[] = [
     {
@@ -78,7 +81,49 @@ function activityLabel(action: string): string {
         return 'Document deleted';
     }
 
+    if (action === 'reviewed') {
+        return 'Document reviewed';
+    }
+
+    if (action === 'approved') {
+        return 'Document approved';
+    }
+
     return action.replaceAll('_', ' ');
+}
+
+function formatConfidence(value: number | string | null | undefined): string {
+    if (value === null || value === undefined) {
+        return '—';
+    }
+
+    const numeric = typeof value === 'number' ? value : Number(value);
+
+    if (Number.isNaN(numeric)) {
+        return '—';
+    }
+
+    return `${(numeric * 100).toFixed(2)}%`;
+}
+
+function canMarkReviewed(): boolean {
+    return canApproveDocuments && props.document.status === 'ready_for_review';
+}
+
+function canApproveDocument(): boolean {
+    return canApproveDocuments && props.document.status === 'reviewed';
+}
+
+function markReviewed(): void {
+    reviewForm.submit(DocumentController.review(props.document), {
+        preserveScroll: true,
+    });
+}
+
+function approveDocument(): void {
+    approveForm.submit(DocumentController.approve(props.document), {
+        preserveScroll: true,
+    });
 }
 </script>
 
@@ -100,6 +145,28 @@ function activityLabel(action: string): string {
 
             <template #actions>
                 <Button
+                    v-if="canMarkReviewed()"
+                    variant="outline"
+                    :disabled="reviewForm.processing"
+                    @click="markReviewed"
+                >
+                    {{ reviewForm.processing ? 'Marking...' : 'Mark Reviewed' }}
+                </Button>
+
+                <Button
+                    v-if="canApproveDocument()"
+                    class="bg-[var(--doc-seal)] text-white hover:bg-primary/90"
+                    :disabled="approveForm.processing"
+                    @click="approveDocument"
+                >
+                    {{
+                        approveForm.processing
+                            ? 'Approving...'
+                            : 'Approve Document'
+                    }}
+                </Button>
+
+                <Button
                     as-child
                     class="bg-[var(--doc-seal)] text-white hover:bg-primary/90"
                 >
@@ -114,6 +181,13 @@ function activityLabel(action: string): string {
                     </Link>
                 </Button>
             </template>
+
+            <p
+                v-if="reviewForm.errors.status || approveForm.errors.status"
+                class="mt-4 text-sm text-destructive"
+            >
+                {{ reviewForm.errors.status ?? approveForm.errors.status }}
+            </p>
 
             <DocumentExperienceSurface
                 :document-experience="documentExperience"
@@ -227,6 +301,57 @@ function activityLabel(action: string): string {
                         </dd>
                     </div>
                 </dl>
+            </DocumentExperienceSurface>
+
+            <DocumentExperienceSurface
+                :document-experience="documentExperience"
+                :delay="2"
+                class="mt-6 p-6 sm:p-8"
+            >
+                <h2 class="doc-title text-xl font-semibold">Classification</h2>
+
+                <div
+                    v-if="document.classification"
+                    class="mt-4 grid gap-5 sm:grid-cols-3"
+                >
+                    <div>
+                        <p
+                            class="doc-subtle text-xs font-semibold tracking-[0.12em] uppercase"
+                        >
+                            Provider
+                        </p>
+                        <p class="mt-1 text-sm">
+                            {{ document.classification.provider }}
+                        </p>
+                    </div>
+                    <div>
+                        <p
+                            class="doc-subtle text-xs font-semibold tracking-[0.12em] uppercase"
+                        >
+                            Type
+                        </p>
+                        <p class="mt-1 text-sm">
+                            {{ document.classification.type }}
+                        </p>
+                    </div>
+                    <div>
+                        <p
+                            class="doc-subtle text-xs font-semibold tracking-[0.12em] uppercase"
+                        >
+                            Confidence
+                        </p>
+                        <p class="mt-1 text-sm">
+                            {{
+                                formatConfidence(
+                                    document.classification.confidence,
+                                )
+                            }}
+                        </p>
+                    </div>
+                </div>
+                <p v-else class="doc-subtle mt-3 text-sm">
+                    Classification not available yet.
+                </p>
             </DocumentExperienceSurface>
 
             <DocumentExperienceSurface
