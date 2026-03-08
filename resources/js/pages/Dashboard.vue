@@ -1,13 +1,16 @@
 <script setup lang="ts">
-import { Head, Link, usePage } from '@inertiajs/vue3';
-import { ArrowRight, Briefcase, FileText, Users } from 'lucide-vue-next';
-import { ref, watch } from 'vue';
-import { useDocumentChannel } from '@/composables/useDocumentChannel';
-import AppLayout from '@/layouts/AppLayout.vue';
 import { dashboard } from '@/routes';
 import { index as clientsIndex } from '@/routes/clients';
 import { index as documentsIndex } from '@/routes/documents';
 import { index as mattersIndex } from '@/routes/matters';
+import { Head, Link, usePage } from '@inertiajs/vue3';
+import { ArrowRight, Briefcase, FileText, Users } from 'lucide-vue-next';
+import { ref, watch } from 'vue';
+import ProcessingPipeline from '@/components/dashboard/ProcessingPipeline.vue';
+import { useDocumentChannel } from '@/composables/useDocumentChannel';
+import { useEchoConnectionStatus } from '@/composables/useEchoConnectionStatus';
+import AppLayout from '@/layouts/AppLayout.vue';
+import { isFailureDocumentStatus } from '@/lib/document-pipeline';
 import {
     type BreadcrumbItem,
     type DashboardPipelineDocument,
@@ -27,6 +30,7 @@ const livePipelineDocuments = ref<DashboardPipelineDocument[]>([
     ...props.pipelineDocuments,
 ]);
 const liveStats = ref<DashboardStats>({ ...props.stats });
+const connectionStatus = useEchoConnectionStatus();
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -38,11 +42,6 @@ const breadcrumbs: BreadcrumbItem[] = [
 const pendingReviewStatuses = new Set<DocumentStatus>([
     'ready_for_review',
     'reviewed',
-]);
-const failedStatuses = new Set<DocumentStatus>([
-    'scan_failed',
-    'extraction_failed',
-    'classification_failed',
 ]);
 
 const quickLinks = [
@@ -86,7 +85,7 @@ function isPendingReviewStatus(status: DocumentStatus): boolean {
 }
 
 function isFailedStatus(status: DocumentStatus): boolean {
-    return failedStatuses.has(status);
+    return isFailureDocumentStatus(status);
 }
 
 function applyStatsDelta(
@@ -225,7 +224,7 @@ if (props.realtimeTenantId) {
         <section
             class="workspace-panel workspace-fade-up workspace-delay-1 mt-6 p-6 sm:p-8"
         >
-            <div class="flex flex-wrap items-start justify-between gap-4">
+            <div>
                 <div>
                     <h2 class="doc-title text-2xl font-semibold">
                         Live processing snapshot
@@ -235,20 +234,6 @@ if (props.realtimeTenantId) {
                         channels.
                     </p>
                 </div>
-                <span
-                    class="workspace-status-pill"
-                    :class="
-                        realtimeTenantId
-                            ? 'workspace-status-pill--success'
-                            : 'workspace-status-pill--warning'
-                    "
-                >
-                    {{
-                        realtimeTenantId
-                            ? 'Realtime connected'
-                            : 'No tenant context'
-                    }}
-                </span>
             </div>
 
             <div class="mt-5 grid gap-3 sm:grid-cols-3">
@@ -273,44 +258,11 @@ if (props.realtimeTenantId) {
             </div>
 
             <div class="mt-5 space-y-3">
-                <article
-                    v-for="document in livePipelineDocuments"
-                    :key="document.id"
-                    class="doc-grid-line rounded-xl border p-4"
-                >
-                    <div
-                        class="flex flex-wrap items-center justify-between gap-2"
-                    >
-                        <p class="doc-title text-sm font-semibold">
-                            {{ document.title }}
-                        </p>
-                        <span class="doc-subtle text-xs">
-                            #{{ document.id }}
-                        </span>
-                    </div>
-                    <div class="mt-2 flex flex-wrap items-center gap-3">
-                        <span class="doc-subtle text-xs">
-                            {{ document.matter_title ?? 'Unassigned matter' }}
-                        </span>
-                        <span
-                            class="workspace-status-pill"
-                            :class="
-                                isFailedStatus(document.status)
-                                    ? 'workspace-status-pill--warning'
-                                    : 'workspace-status-pill--success'
-                            "
-                        >
-                            {{ document.status.replaceAll('_', ' ') }}
-                        </span>
-                    </div>
-                </article>
-
-                <p
-                    v-if="livePipelineDocuments.length === 0"
-                    class="doc-subtle rounded-xl border border-[var(--doc-border)] p-4 text-sm"
-                >
-                    No recent document activity available yet.
-                </p>
+                <ProcessingPipeline
+                    :documents="livePipelineDocuments"
+                    :connection-status="connectionStatus"
+                    :realtime-enabled="Boolean(realtimeTenantId)"
+                />
             </div>
         </section>
 
