@@ -49,6 +49,24 @@ export type DocumentClassification = {
     metadata?: Record<string, unknown> | null;
 };
 
+export type DocumentExtractedData = {
+    provider: string;
+    extracted_text: string | null;
+    payload: Record<string, unknown> | null;
+    metadata: Record<string, unknown> | null;
+};
+
+export type DocumentPreviewState = {
+    url: string | null;
+    available: boolean;
+    mime_type: string | null;
+    mode: 'pdf' | 'unsupported';
+};
+
+export type DocumentReviewWorkspace = {
+    preview: DocumentPreviewState;
+};
+
 export type DocumentChannelSnapshot = {
     title: string;
     matter_title: string | null;
@@ -70,6 +88,7 @@ export type Document = {
     matter?: Matter;
     uploader?: User | null;
     classification?: DocumentClassification | null;
+    extracted_data?: DocumentExtractedData | null;
 };
 
 export type DocumentActivity = {
@@ -142,4 +161,24 @@ export type DashboardFailureDocument = {
     status: DocumentStatus;
     matter_title: string | null;
     updated_at: string;
+};
+
+export type DocumentAnnotation = {
+    id: number;
+};
+
+export type DocumentComment = {
+    id: number;
+};
+
+export type DocumentReviewerAssignment = {
+    user_id: number | null;
+};
+
+export type DocumentVersion = {
+    id: number;
+};
+
+export type DocumentVersionDiff = {
+    changed_fields: string[];
 };
