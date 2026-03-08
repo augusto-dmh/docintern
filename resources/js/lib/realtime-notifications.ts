@@ -11,6 +11,11 @@ export type WorkspaceNotification = {
     message: string;
     tone: WorkspaceNotificationTone;
     occurredAt: string;
+    autoDismiss: boolean;
+    durationMs: number | null;
+    remainingMs: number | null;
+    lastResumedAt: number | null;
+    isPaused: boolean;
 };
 
 const visibleStatuses = new Set([
@@ -78,6 +83,11 @@ function buildNotification(
             message: `The document stopped during ${failureStageLabel(payload.status_to)} and needs review.`,
             tone: 'failure',
             occurredAt: payload.occurred_at,
+            autoDismiss: false,
+            durationMs: null,
+            remainingMs: null,
+            lastResumedAt: null,
+            isPaused: false,
         };
     }
 
@@ -90,6 +100,11 @@ function buildNotification(
             message: 'The document entered the tenant processing queue.',
             tone: 'info',
             occurredAt: payload.occurred_at,
+            autoDismiss: true,
+            durationMs: 7000,
+            remainingMs: 7000,
+            lastResumedAt: null,
+            isPaused: false,
         };
     }
 
@@ -103,6 +118,11 @@ function buildNotification(
                 'Extraction and classification completed. A reviewer can inspect the result now.',
             tone: 'success',
             occurredAt: payload.occurred_at,
+            autoDismiss: true,
+            durationMs: 9000,
+            remainingMs: 9000,
+            lastResumedAt: null,
+            isPaused: false,
         };
     }
 
@@ -116,6 +136,11 @@ function buildNotification(
                 'The document was marked as reviewed and is ready for approval.',
             tone: 'success',
             occurredAt: payload.occurred_at,
+            autoDismiss: true,
+            durationMs: 9000,
+            remainingMs: 9000,
+            lastResumedAt: null,
+            isPaused: false,
         };
     }
 
@@ -127,6 +152,11 @@ function buildNotification(
         message: 'The document completed the review cycle and is now approved.',
         tone: 'success',
         occurredAt: payload.occurred_at,
+        autoDismiss: true,
+        durationMs: 9000,
+        remainingMs: 9000,
+        lastResumedAt: null,
+        isPaused: false,
     };
 }
 
@@ -137,6 +167,17 @@ function clearDismissalTimer(id: string): void {
         clearTimeout(timer);
         dismissalTimers.delete(id);
     }
+}
+
+function scheduleDismissal(id: string, delayMs: number): void {
+    clearDismissalTimer(id);
+
+    dismissalTimers.set(
+        id,
+        setTimeout(() => {
+            dismissRealtimeNotification(id);
+        }, delayMs),
+    );
 }
 
 export function dismissRealtimeNotification(id: string): void {
@@ -186,16 +227,55 @@ export function publishRealtimeNotification(
 
     notifications.value = nextNotifications.slice(0, 5);
 
-    if (notification.tone !== 'failure') {
-        dismissalTimers.set(
-            notification.id,
-            setTimeout(() => {
-                dismissRealtimeNotification(notification.id);
-            }, 6000),
-        );
+    if (notification.autoDismiss && notification.remainingMs !== null) {
+        notification.lastResumedAt = Date.now();
+        scheduleDismissal(notification.id, notification.remainingMs);
     }
 }
 
 export function useRealtimeNotifications() {
     return readonly(notifications);
+}
+
+export function pauseRealtimeNotification(id: string): void {
+    const notification = notifications.value.find((item) => item.id === id);
+
+    if (
+        notification === undefined ||
+        !notification.autoDismiss ||
+        notification.isPaused ||
+        notification.remainingMs === null
+    ) {
+        return;
+    }
+
+    const now = Date.now();
+
+    if (notification.lastResumedAt !== null) {
+        notification.remainingMs = Math.max(
+            0,
+            notification.remainingMs - (now - notification.lastResumedAt),
+        );
+    }
+
+    notification.lastResumedAt = null;
+    notification.isPaused = true;
+    clearDismissalTimer(id);
+}
+
+export function resumeRealtimeNotification(id: string): void {
+    const notification = notifications.value.find((item) => item.id === id);
+
+    if (
+        notification === undefined ||
+        !notification.autoDismiss ||
+        !notification.isPaused ||
+        notification.remainingMs === null
+    ) {
+        return;
+    }
+
+    notification.isPaused = false;
+    notification.lastResumedAt = Date.now();
+    scheduleDismissal(id, notification.remainingMs);
 }

@@ -338,6 +338,24 @@
         position: relative;
     }
 
+    .workspace-notice-enter-active,
+    .workspace-notice-leave-active {
+        transition:
+            opacity 220ms cubic-bezier(0.22, 1, 0.36, 1),
+            transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+        will-change: opacity, transform;
+    }
+
+    .workspace-notice-enter-from,
+    .workspace-notice-leave-to {
+        opacity: 0;
+        transform: translate3d(0, -8px, 0) scale(0.985);
+    }
+
+    .workspace-notice-move {
+        transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
     .workspace-notice-card {
         position: relative;
         overflow: hidden;
@@ -358,6 +376,16 @@
             );
         box-shadow: 0 20px 35px -30px hsl(24 28% 16% / 0.45);
         padding: 1rem 1rem 0.95rem;
+        transition:
+            transform 180ms ease,
+            box-shadow 180ms ease,
+            border-color 180ms ease;
+    }
+
+    .workspace-notice-card:hover,
+    .workspace-notice-card:focus-within {
+        transform: translateY(-1px);
+        box-shadow: 0 24px 42px -30px hsl(24 28% 16% / 0.55);
     }
 
     .workspace-notice-card::before {
@@ -421,6 +449,42 @@
     .workspace-notice-dismiss:hover {
         background: hsl(34 32% 88% / 0.75);
         color: hsl(22 32% 20%);
+    }
+
+    .workspace-notice-meter {
+        overflow: hidden;
+        border-radius: 9999px;
+        background: hsl(31 24% 82% / 0.55);
+        height: 0.24rem;
+    }
+
+    .workspace-notice-meter-bar {
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+            90deg,
+            hsl(35 70% 46% / 0.8),
+            hsl(9 72% 34% / 0.9)
+        );
+        transform-origin: left center;
+        animation: workspace-notice-meter 9s linear forwards;
+    }
+
+    .workspace-notice-card--info .workspace-notice-meter-bar {
+        animation-duration: 7s;
+    }
+
+    .workspace-notice-card--success .workspace-notice-meter-bar {
+        animation-duration: 9s;
+        background: linear-gradient(
+            90deg,
+            hsl(149 55% 33% / 0.75),
+            hsl(35 70% 46% / 0.75)
+        );
+    }
+
+    .workspace-notice-meter-bar--paused {
+        animation-play-state: paused;
     }
 
     .workspace-failure-card {
@@ -606,5 +670,15 @@
     to {
         opacity: 1;
         transform: translateY(0);
+    }
+}
+
+@keyframes workspace-notice-meter {
+    from {
+        transform: scaleX(1);
+    }
+
+    to {
+        transform: scaleX(0);
     }
 }
