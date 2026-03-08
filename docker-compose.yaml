@@ -44,7 +44,7 @@ services:
       - REVERB_APP_ID=${REVERB_APP_ID:-docintern-local}
       - REVERB_APP_KEY=${REVERB_APP_KEY:-docintern-key}
       - REVERB_APP_SECRET=${REVERB_APP_SECRET:-docintern-secret}
-      - REVERB_HOST=${REVERB_HOST:-reverb}
+      - REVERB_HOST=reverb
       - REVERB_PORT=${REVERB_PORT:-8080}
       - REVERB_SCHEME=${REVERB_SCHEME:-http}
     depends_on:
@@ -138,7 +138,7 @@ services:
       - REVERB_APP_ID=${REVERB_APP_ID:-docintern-local}
       - REVERB_APP_KEY=${REVERB_APP_KEY:-docintern-key}
       - REVERB_APP_SECRET=${REVERB_APP_SECRET:-docintern-secret}
-      - REVERB_HOST=${REVERB_HOST:-reverb}
+      - REVERB_HOST=reverb
       - REVERB_PORT=${REVERB_PORT:-8080}
       - REVERB_SCHEME=${REVERB_SCHEME:-http}
     depends_on:
@@ -194,7 +194,7 @@ services:
       - REVERB_APP_ID=${REVERB_APP_ID:-docintern-local}
       - REVERB_APP_KEY=${REVERB_APP_KEY:-docintern-key}
       - REVERB_APP_SECRET=${REVERB_APP_SECRET:-docintern-secret}
-      - REVERB_HOST=${REVERB_HOST:-reverb}
+      - REVERB_HOST=reverb
       - REVERB_PORT=${REVERB_PORT:-8080}
       - REVERB_SCHEME=${REVERB_SCHEME:-http}
     depends_on:

@@ -1,6 +1,6 @@
 import { onBeforeUnmount } from 'vue';
 import { getEcho } from '@/lib/echo';
-import type { DocumentStatus } from '@/types';
+import type { DocumentClassification, DocumentStatus } from '@/types';
 
 export type DocumentStatusUpdatedPayload = {
     document_id: number;
@@ -10,6 +10,7 @@ export type DocumentStatusUpdatedPayload = {
     event: string;
     trace_id: string;
     occurred_at: string;
+    classification: DocumentClassification | null;
 };
 
 type UseDocumentChannelOptions = {
@@ -44,6 +45,7 @@ function normalizePayload(
     const candidatePayload = payload as Record<string, unknown>;
     const statusTo = candidatePayload.status_to;
     const statusFrom = candidatePayload.status_from;
+    const classification = candidatePayload.classification;
 
     if (
         typeof candidatePayload.document_id !== 'number' ||
@@ -65,6 +67,28 @@ function normalizePayload(
         return null;
     }
 
+    if (
+        classification !== null
+        && classification !== undefined
+        && !(
+            typeof classification === 'object'
+            && classification !== null
+            && typeof (classification as Record<string, unknown>).provider
+                === 'string'
+            && typeof (classification as Record<string, unknown>).type
+                === 'string'
+            && (
+                (classification as Record<string, unknown>).confidence === null
+                || typeof (classification as Record<string, unknown>).confidence
+                    === 'number'
+                || typeof (classification as Record<string, unknown>).confidence
+                    === 'string'
+            )
+        )
+    ) {
+        return null;
+    }
+
     return {
         document_id: candidatePayload.document_id,
         tenant_id: candidatePayload.tenant_id,
@@ -73,6 +97,7 @@ function normalizePayload(
         event: candidatePayload.event,
         trace_id: candidatePayload.trace_id,
         occurred_at: candidatePayload.occurred_at,
+        classification: classification === undefined ? null : classification as DocumentClassification | null,
     };
 }
 

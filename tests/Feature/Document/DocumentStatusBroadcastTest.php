@@ -3,6 +3,7 @@
 use App\Events\DocumentStatusUpdated;
 use App\Models\Client;
 use App\Models\Document;
+use App\Models\DocumentClassification;
 use App\Models\Matter;
 use App\Models\Tenant;
 use App\Models\User;
@@ -55,7 +56,8 @@ test('upload emits document status updated broadcast event', function (): void {
             && $event->tenantId === $tenant->id
             && $event->statusFrom === null
             && $event->statusTo === 'uploaded'
-            && $event->event === 'document.uploaded',
+            && $event->event === 'document.uploaded'
+            && $event->classification === null,
     );
 });
 
@@ -94,6 +96,57 @@ test('status transition emits document status updated broadcast event', function
             && $event->tenantId === $tenant->id
             && $event->statusFrom === 'ready_for_review'
             && $event->statusTo === 'reviewed'
-            && $event->event === 'document.status.transitioned',
+            && $event->event === 'document.status.transitioned'
+            && $event->classification === null,
+    );
+});
+
+test('status transition includes classification snapshot when available', function (): void {
+    Event::fake([DocumentStatusUpdated::class]);
+
+    $tenant = Tenant::factory()->create();
+    $user = User::factory()->forTenant($tenant)->create();
+    $client = Client::factory()->create(['tenant_id' => $tenant->id]);
+    $matter = Matter::factory()->create([
+        'tenant_id' => $tenant->id,
+        'client_id' => $client->id,
+    ]);
+    $document = Document::factory()->readyForReview()->create([
+        'tenant_id' => $tenant->id,
+        'matter_id' => $matter->id,
+        'uploaded_by' => $user->id,
+    ]);
+
+    DocumentClassification::factory()->create([
+        'tenant_id' => $tenant->id,
+        'document_id' => $document->id,
+        'provider' => 'openai',
+        'type' => 'contract',
+        'confidence' => 0.92,
+    ]);
+
+    setPermissionsTeamId($tenant->id);
+    $user->assignRole('tenant-admin');
+    tenancy()->initialize($tenant);
+
+    /** @var DocumentStatusTransitionService $transitionService */
+    $transitionService = app(DocumentStatusTransitionService::class);
+
+    $transitionService->transition(
+        document: $document,
+        toStatus: 'reviewed',
+        consumerName: 'test-suite',
+    );
+
+    Event::assertDispatched(
+        DocumentStatusUpdated::class,
+        fn (DocumentStatusUpdated $event): bool => $event->documentId === $document->id
+            && $event->tenantId === $tenant->id
+            && $event->statusFrom === 'ready_for_review'
+            && $event->statusTo === 'reviewed'
+            && $event->event === 'document.status.transitioned'
+            && ($event->classification['provider'] ?? null) === 'openai'
+            && ($event->classification['type'] ?? null) === 'contract'
+            && (float) ($event->classification['confidence'] ?? 0.0) === 0.92,
     );
 });
