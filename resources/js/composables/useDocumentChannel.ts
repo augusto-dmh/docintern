@@ -1,6 +1,10 @@
 import { onBeforeUnmount } from 'vue';
 import { getEcho } from '@/lib/echo';
-import type { DocumentClassification, DocumentStatus } from '@/types';
+import type {
+    DocumentChannelSnapshot,
+    DocumentClassification,
+    DocumentStatus,
+} from '@/types';
 
 export type DocumentStatusUpdatedPayload = {
     document_id: number;
@@ -11,6 +15,7 @@ export type DocumentStatusUpdatedPayload = {
     trace_id: string;
     occurred_at: string;
     classification: DocumentClassification | null;
+    document: DocumentChannelSnapshot | null;
 };
 
 type UseDocumentChannelOptions = {
@@ -46,6 +51,7 @@ function normalizePayload(
     const statusTo = candidatePayload.status_to;
     const statusFrom = candidatePayload.status_from;
     const classification = candidatePayload.classification;
+    const document = candidatePayload.document;
 
     if (
         typeof candidatePayload.document_id !== 'number' ||
@@ -68,22 +74,35 @@ function normalizePayload(
     }
 
     if (
-        classification !== null
-        && classification !== undefined
-        && !(
-            typeof classification === 'object'
-            && classification !== null
-            && typeof (classification as Record<string, unknown>).provider
-                === 'string'
-            && typeof (classification as Record<string, unknown>).type
-                === 'string'
-            && (
-                (classification as Record<string, unknown>).confidence === null
-                || typeof (classification as Record<string, unknown>).confidence
-                    === 'number'
-                || typeof (classification as Record<string, unknown>).confidence
-                    === 'string'
-            )
+        classification !== null &&
+        classification !== undefined &&
+        !(
+            typeof classification === 'object' &&
+            classification !== null &&
+            typeof (classification as Record<string, unknown>).provider ===
+                'string' &&
+            typeof (classification as Record<string, unknown>).type ===
+                'string' &&
+            ((classification as Record<string, unknown>).confidence === null ||
+                typeof (classification as Record<string, unknown>)
+                    .confidence === 'number' ||
+                typeof (classification as Record<string, unknown>)
+                    .confidence === 'string')
+        )
+    ) {
+        return null;
+    }
+
+    if (
+        document !== null &&
+        document !== undefined &&
+        !(
+            typeof document === 'object' &&
+            document !== null &&
+            typeof (document as Record<string, unknown>).title === 'string' &&
+            ((document as Record<string, unknown>).matter_title === null ||
+                typeof (document as Record<string, unknown>).matter_title ===
+                    'string')
         )
     ) {
         return null;
@@ -97,7 +116,14 @@ function normalizePayload(
         event: candidatePayload.event,
         trace_id: candidatePayload.trace_id,
         occurred_at: candidatePayload.occurred_at,
-        classification: classification === undefined ? null : classification as DocumentClassification | null,
+        classification:
+            classification === undefined
+                ? null
+                : (classification as DocumentClassification | null),
+        document:
+            document === undefined
+                ? null
+                : (document as DocumentChannelSnapshot | null),
     };
 }
 

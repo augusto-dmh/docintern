@@ -107,7 +107,10 @@ class DocumentStatusTransitionService
             retryCount: 0,
         ));
 
-        $transitionedDocument = $transitionResult['document']->load('classification');
+        $transitionedDocument = $transitionResult['document']->load([
+            'classification',
+            'matter:id,title',
+        ]);
 
         event(new DocumentStatusUpdated(
             documentId: $transitionedDocument->id,
@@ -122,6 +125,7 @@ class DocumentStatusTransitionService
             traceId: $transitionResult['trace_id'],
             occurredAt: now()->toImmutable(),
             classification: $this->formatClassificationSnapshot($transitionedDocument),
+            document: $this->formatDocumentSnapshot($transitionedDocument),
         ));
 
         return $transitionedDocument;
@@ -158,6 +162,17 @@ class DocumentStatusTransitionService
             'provider' => $classification->provider,
             'type' => $classification->type,
             'confidence' => $classification->confidence,
+        ];
+    }
+
+    /**
+     * @return array{title: string, matter_title: string|null}
+     */
+    protected function formatDocumentSnapshot(Document $document): array
+    {
+        return [
+            'title' => $document->title,
+            'matter_title' => $document->matter?->title,
         ];
     }
 }
