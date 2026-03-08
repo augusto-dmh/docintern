@@ -110,6 +110,18 @@ function cancelComposer(): void {
     resetDraft();
 }
 
+function defaultCoordinates(point: { x: number; y: number }): DocumentAnnotationCoordinates {
+    const defaultWidth = 0.2;
+    const defaultHeight = 0.08;
+
+    return {
+        x: clamp(point.x - defaultWidth / 2, 0, 1 - defaultWidth),
+        y: clamp(point.y - defaultHeight / 2, 0, 1 - defaultHeight),
+        width: defaultWidth,
+        height: defaultHeight,
+    };
+}
+
 function handlePointerDown(event: PointerEvent): void {
     if (
         !props.canAnnotate ||
@@ -126,6 +138,10 @@ function handlePointerDown(event: PointerEvent): void {
 
     if (point === null) {
         return;
+    }
+
+    if (event.currentTarget instanceof HTMLElement) {
+        event.currentTarget.setPointerCapture(event.pointerId);
     }
 
     pointerStart.value = point;
@@ -161,10 +177,9 @@ function handlePointerMove(event: PointerEvent): void {
     };
 }
 
-function handlePointerUp(): void {
+function handlePointerUp(event: PointerEvent): void {
     if (
         pointerStart.value === null ||
-        draftCoordinates.value === null ||
         props.activeTool === null
     ) {
         resetDraft();
@@ -172,15 +187,27 @@ function handlePointerUp(): void {
         return;
     }
 
+    const point = overlayPoint(event) ?? pointerStart.value;
+    const left = Math.min(pointerStart.value.x, point.x);
+    const top = Math.min(pointerStart.value.y, point.y);
+    const width = Math.abs(pointerStart.value.x - point.x);
+    const height = Math.abs(pointerStart.value.y - point.y);
     const minimumVisibleBox = 0.01;
-    const draft = draftCoordinates.value;
+    const draft =
+        width < minimumVisibleBox || height < minimumVisibleBox
+            ? defaultCoordinates(point)
+            : {
+                  x: left,
+                  y: top,
+                  width,
+                  height,
+              };
 
-    if (draft.width < minimumVisibleBox || draft.height < minimumVisibleBox) {
-        resetDraft();
-
-        return;
+    if (event.currentTarget instanceof HTMLElement) {
+        event.currentTarget.releasePointerCapture(event.pointerId);
     }
 
+    draftCoordinates.value = draft;
     draftType.value = props.activeTool;
     pointerStart.value = null;
 
@@ -266,10 +293,10 @@ const selectedAnnotationStyle = computed(() => {
             v-if="canAnnotate && activeTool"
             class="pointer-events-auto absolute inset-0"
             :class="busy ? 'cursor-wait' : 'cursor-crosshair'"
-            @pointerdown="handlePointerDown"
+            @pointerdown.prevent="handlePointerDown"
             @pointermove="handlePointerMove"
             @pointerup="handlePointerUp"
-            @pointerleave="handlePointerUp"
+            @pointercancel="cancelComposer"
         />
 
         <button
