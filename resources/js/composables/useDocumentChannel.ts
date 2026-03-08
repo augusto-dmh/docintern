@@ -1,4 +1,4 @@
-import { onBeforeUnmount } from 'vue';
+import { onBeforeUnmount, toValue, watch, type MaybeRefOrGetter } from 'vue';
 import { getEcho } from '@/lib/echo';
 import type {
     DocumentChannelSnapshot,
@@ -19,8 +19,8 @@ export type DocumentStatusUpdatedPayload = {
 };
 
 type UseDocumentChannelOptions = {
-    tenantId?: string | null;
-    documentId?: number | null;
+    tenantId?: MaybeRefOrGetter<string | null | undefined>;
+    documentId?: MaybeRefOrGetter<number | null | undefined>;
     onStatusUpdated: (payload: DocumentStatusUpdatedPayload) => void;
 };
 
@@ -134,8 +134,12 @@ export function useDocumentChannel(options: UseDocumentChannelOptions): void {
         return;
     }
 
-    const subscribedChannels: string[] = [];
+    const subscribedChannels = new Set<string>();
     const listenForUpdates = (channelName: string): void => {
+        if (subscribedChannels.has(channelName)) {
+            return;
+        }
+
         echo.private(channelName).listen(
             '.document.status.updated',
             (payload: unknown): void => {
@@ -149,20 +153,55 @@ export function useDocumentChannel(options: UseDocumentChannelOptions): void {
             },
         );
 
-        subscribedChannels.push(channelName);
+        subscribedChannels.add(channelName);
     };
 
-    if (options.tenantId) {
-        listenForUpdates(`tenant.${options.tenantId}.documents`);
-    }
+    const leaveChannel = (channelName: string): void => {
+        if (!subscribedChannels.has(channelName)) {
+            return;
+        }
 
-    if (options.documentId) {
-        listenForUpdates(`document.${options.documentId}`);
-    }
+        echo.leave(channelName);
+        subscribedChannels.delete(channelName);
+    };
+
+    const stopWatching = watch(
+        () => {
+            const tenantId = toValue(options.tenantId);
+            const documentId = toValue(options.documentId);
+            const channelNames: string[] = [];
+
+            if (typeof tenantId === 'string' && tenantId !== '') {
+                channelNames.push(`tenant.${tenantId}.documents`);
+            }
+
+            if (typeof documentId === 'number') {
+                channelNames.push(`document.${documentId}`);
+            }
+
+            return channelNames;
+        },
+        (channelNames) => {
+            const nextChannels = new Set(channelNames);
+
+            subscribedChannels.forEach((channelName) => {
+                if (!nextChannels.has(channelName)) {
+                    leaveChannel(channelName);
+                }
+            });
+
+            channelNames.forEach((channelName) => {
+                listenForUpdates(channelName);
+            });
+        },
+        { immediate: true },
+    );
 
     onBeforeUnmount((): void => {
+        stopWatching();
+
         subscribedChannels.forEach((channelName) => {
-            echo.leave(channelName);
+            leaveChannel(channelName);
         });
     });
 }

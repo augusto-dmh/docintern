@@ -21,13 +21,30 @@ import {
 
 const page = usePage();
 const notifications = useRealtimeNotifications();
-const tenantId = computed(
-    () =>
-        page.props.tenant?.id ??
-        page.props.tenantContext?.activeTenantId ??
-        null,
-);
-const documentId = computed(() => page.props.document?.id ?? null);
+const tenantId = computed(() => {
+    const scopedTenantId = page.props.tenant?.id;
+
+    if (typeof scopedTenantId === 'string' && scopedTenantId !== '') {
+        return scopedTenantId;
+    }
+
+    const activeTenantId = page.props.tenantContext?.activeTenantId;
+
+    if (typeof activeTenantId === 'string' && activeTenantId !== '') {
+        return activeTenantId;
+    }
+
+    const realtimeTenantId = page.props.realtimeTenantId;
+
+    return typeof realtimeTenantId === 'string' && realtimeTenantId !== ''
+        ? realtimeTenantId
+        : null;
+});
+const documentId = computed(() => {
+    const currentDocumentId = page.props.document?.id;
+
+    return typeof currentDocumentId === 'number' ? currentDocumentId : null;
+});
 
 function notificationToneClass(notification: WorkspaceNotification): string {
     if (notification.tone === 'failure') {
@@ -63,8 +80,8 @@ function formatDateTime(value: string): string {
 }
 
 useDocumentChannel({
-    tenantId: tenantId.value,
-    documentId: documentId.value,
+    tenantId,
+    documentId,
     onStatusUpdated: (payload) => {
         publishRealtimeNotification(payload);
     },
