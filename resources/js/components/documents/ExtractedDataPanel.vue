@@ -120,9 +120,7 @@ function formatConfidence(value: number | string | null | undefined): string {
             </span>
         </div>
 
-        <div
-            class="mt-5 grid gap-3 md:grid-cols-3 xl:grid-cols-1 2xl:grid-cols-3"
-        >
+        <div class="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
             <div
                 class="rounded-2xl border border-[var(--doc-border)]/70 bg-[hsl(34_32%_97%/0.86)] p-4"
             >
@@ -134,16 +132,16 @@ function formatConfidence(value: number | string | null | undefined): string {
                 <p class="doc-title mt-2 text-base font-semibold">
                     {{ classification?.type ?? 'Pending classification' }}
                 </p>
-                <dl class="mt-3 space-y-1.5 text-sm">
-                    <div class="flex justify-between gap-3">
+                <dl class="mt-3 grid gap-3 text-sm">
+                    <div class="grid gap-1">
                         <dt class="doc-subtle">Confidence</dt>
                         <dd class="font-medium">
                             {{ formatConfidence(classification?.confidence) }}
                         </dd>
                     </div>
-                    <div class="flex justify-between gap-3">
+                    <div class="grid gap-1">
                         <dt class="doc-subtle">Provider</dt>
-                        <dd class="font-medium">
+                        <dd class="font-medium break-words">
                             {{ classification?.provider ?? 'Awaiting result' }}
                         </dd>
                     </div>
@@ -161,8 +159,8 @@ function formatConfidence(value: number | string | null | undefined): string {
                 <p class="doc-title mt-2 text-base font-semibold">
                     {{ extractedLines.length }}
                 </p>
-                <dl class="mt-3 space-y-1.5 text-sm">
-                    <div class="flex justify-between gap-3">
+                <dl class="mt-3 grid gap-1 text-sm">
+                    <div class="grid gap-1">
                         <dt class="doc-subtle">Structured fields</dt>
                         <dd class="font-medium">
                             {{ extractedFields.length }}
