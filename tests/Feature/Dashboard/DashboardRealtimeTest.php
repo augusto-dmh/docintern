@@ -67,6 +67,20 @@ test('dashboard shares realtime props for tenant scoped user', function (): void
         'status' => 'scan_failed',
         'updated_at' => now()->subMinutes(5),
     ]);
+    $olderExtractionFailure = Document::factory()->create([
+        'tenant_id' => $tenant->id,
+        'matter_id' => $matter->id,
+        'uploaded_by' => $user->id,
+        'status' => 'extraction_failed',
+        'updated_at' => now()->subMinutes(6),
+    ]);
+    $oldestClassificationFailure = Document::factory()->create([
+        'tenant_id' => $tenant->id,
+        'matter_id' => $matter->id,
+        'uploaded_by' => $user->id,
+        'status' => 'classification_failed',
+        'updated_at' => now()->subMinutes(7),
+    ]);
 
     setPermissionsTeamId($tenant->id);
     $user->assignRole('tenant-admin');
@@ -79,8 +93,8 @@ test('dashboard shares realtime props for tenant scoped user', function (): void
             ->where('realtimeTenantId', $tenant->id)
             ->where('stats.processed_today', 1)
             ->where('stats.pending_review', 1)
-            ->where('stats.failed', 1)
-            ->has('pipelineDocuments', 6)
+            ->where('stats.failed', 3)
+            ->has('pipelineDocuments', 8)
             ->where('pipelineDocuments.0.id', $uploadedDocument->id)
             ->where('pipelineDocuments.0.status', 'uploaded')
             ->where('pipelineDocuments.1.id', $scanningDocument->id)
@@ -93,6 +107,17 @@ test('dashboard shares realtime props for tenant scoped user', function (): void
             ->where('pipelineDocuments.4.status', 'approved')
             ->where('pipelineDocuments.5.id', $failedDocument->id)
             ->where('pipelineDocuments.5.status', 'scan_failed')
+            ->where('pipelineDocuments.6.id', $olderExtractionFailure->id)
+            ->where('pipelineDocuments.6.status', 'extraction_failed')
+            ->where('pipelineDocuments.7.id', $oldestClassificationFailure->id)
+            ->where('pipelineDocuments.7.status', 'classification_failed')
+            ->has('recentFailures', 3)
+            ->where('recentFailures.0.id', $failedDocument->id)
+            ->where('recentFailures.0.status', 'scan_failed')
+            ->where('recentFailures.1.id', $olderExtractionFailure->id)
+            ->where('recentFailures.1.status', 'extraction_failed')
+            ->where('recentFailures.2.id', $oldestClassificationFailure->id)
+            ->where('recentFailures.2.status', 'classification_failed')
         );
 });
 
@@ -113,6 +138,7 @@ test('dashboard falls back to disabled realtime props for super admin without te
             ->where('stats.pending_review', 0)
             ->where('stats.failed', 0)
             ->where('pipelineDocuments', [])
+            ->where('recentFailures', [])
         );
 });
 
@@ -121,15 +147,34 @@ test('dashboard uses selected tenant context for super admin realtime props', fu
     $otherTenant = Tenant::factory()->create();
     $superAdmin = User::factory()->forTenant($tenant)->create();
     $client = Client::factory()->create(['tenant_id' => $otherTenant->id]);
+    $tenantClient = Client::factory()->create(['tenant_id' => $tenant->id]);
     $matter = Matter::factory()->create([
         'tenant_id' => $otherTenant->id,
         'client_id' => $client->id,
+    ]);
+    $tenantMatter = Matter::factory()->create([
+        'tenant_id' => $tenant->id,
+        'client_id' => $tenantClient->id,
     ]);
     $selectedTenantDocument = Document::factory()->create([
         'tenant_id' => $otherTenant->id,
         'matter_id' => $matter->id,
         'uploaded_by' => null,
         'status' => 'classifying',
+        'updated_at' => now(),
+    ]);
+    $selectedTenantFailure = Document::factory()->create([
+        'tenant_id' => $otherTenant->id,
+        'matter_id' => $matter->id,
+        'uploaded_by' => null,
+        'status' => 'scan_failed',
+        'updated_at' => now()->subMinute(),
+    ]);
+    Document::factory()->create([
+        'tenant_id' => $tenant->id,
+        'matter_id' => $tenantMatter->id,
+        'uploaded_by' => null,
+        'status' => 'classification_failed',
         'updated_at' => now(),
     ]);
 
@@ -145,5 +190,8 @@ test('dashboard uses selected tenant context for super admin realtime props', fu
             ->where('realtimeTenantId', $otherTenant->id)
             ->where('pipelineDocuments.0.id', $selectedTenantDocument->id)
             ->where('pipelineDocuments.0.status', 'classifying')
+            ->has('recentFailures', 1)
+            ->where('recentFailures.0.id', $selectedTenantFailure->id)
+            ->where('recentFailures.0.status', 'scan_failed')
         );
 });
