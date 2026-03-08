@@ -119,6 +119,10 @@ class DocumentUploadService
             event: 'document.uploaded',
             traceId: $uploadResult['trace_id'],
             occurredAt: now()->toImmutable(),
+            document: [
+                'title' => $uploadResult['document']->title,
+                'matter_title' => $matter->title,
+            ],
         ));
 
         return $uploadResult['document'];

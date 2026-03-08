@@ -13,6 +13,7 @@ class DocumentStatusUpdated implements ShouldBroadcastNow
 
     /**
      * @param  array{provider: string, type: string, confidence: float|string|null}|null  $classification
+     * @param  array{title: string, matter_title: string|null}|null  $document
      */
     public function __construct(
         public int $documentId,
@@ -23,6 +24,7 @@ class DocumentStatusUpdated implements ShouldBroadcastNow
         public string $traceId,
         public CarbonImmutable $occurredAt,
         public ?array $classification = null,
+        public ?array $document = null,
     ) {}
 
     public function broadcastAs(): string
@@ -50,7 +52,8 @@ class DocumentStatusUpdated implements ShouldBroadcastNow
      *     event: string,
      *     trace_id: string,
      *     occurred_at: string,
-     *     classification: array{provider: string, type: string, confidence: float|string|null}|null
+     *     classification: array{provider: string, type: string, confidence: float|string|null}|null,
+     *     document: array{title: string, matter_title: string|null}|null
      * }
      */
     public function broadcastWith(): array
@@ -64,6 +67,7 @@ class DocumentStatusUpdated implements ShouldBroadcastNow
             'trace_id' => $this->traceId,
             'occurred_at' => $this->occurredAt->toISOString(),
             'classification' => $this->classification,
+            'document' => $this->document,
         ];
     }
 }

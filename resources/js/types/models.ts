@@ -49,6 +49,11 @@ export type DocumentClassification = {
     metadata?: Record<string, unknown> | null;
 };
 
+export type DocumentChannelSnapshot = {
+    title: string;
+    matter_title: string | null;
+};
+
 export type Document = {
     id: number;
     tenant_id: string;
@@ -129,4 +134,12 @@ export type DashboardStats = {
     processed_today: number;
     pending_review: number;
     failed: number;
+};
+
+export type DashboardFailureDocument = {
+    id: number;
+    title: string;
+    status: DocumentStatus;
+    matter_title: string | null;
+    updated_at: string;
 };
