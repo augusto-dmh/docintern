@@ -26,6 +26,7 @@ const permissions = usePage().props.auth.permissions;
 const canEditDocuments = permissions.includes('edit documents');
 const canApproveDocuments = permissions.includes('approve documents');
 const liveStatus = ref(props.document.status);
+const liveClassification = ref(props.document.classification);
 const reviewForm = useForm({});
 const approveForm = useForm({});
 
@@ -136,6 +137,13 @@ watch(
     },
 );
 
+watch(
+    () => props.document.classification,
+    (classification) => {
+        liveClassification.value = classification;
+    },
+);
+
 useDocumentChannel({
     tenantId: props.document.tenant_id,
     documentId: props.document.id,
@@ -145,6 +153,7 @@ useDocumentChannel({
         }
 
         liveStatus.value = payload.status_to;
+        liveClassification.value = payload.classification;
     },
 });
 </script>
@@ -332,10 +341,7 @@ useDocumentChannel({
             >
                 <h2 class="doc-title text-xl font-semibold">Classification</h2>
 
-                <div
-                    v-if="document.classification"
-                    class="mt-4 grid gap-5 sm:grid-cols-3"
-                >
+                <div v-if="liveClassification" class="mt-4 grid gap-5 sm:grid-cols-3">
                     <div>
                         <p
                             class="doc-subtle text-xs font-semibold tracking-[0.12em] uppercase"
@@ -343,7 +349,7 @@ useDocumentChannel({
                             Provider
                         </p>
                         <p class="mt-1 text-sm">
-                            {{ document.classification.provider }}
+                            {{ liveClassification.provider }}
                         </p>
                     </div>
                     <div>
@@ -353,7 +359,7 @@ useDocumentChannel({
                             Type
                         </p>
                         <p class="mt-1 text-sm">
-                            {{ document.classification.type }}
+                            {{ liveClassification.type }}
                         </p>
                     </div>
                     <div>
@@ -363,11 +369,7 @@ useDocumentChannel({
                             Confidence
                         </p>
                         <p class="mt-1 text-sm">
-                            {{
-                                formatConfidence(
-                                    document.classification.confidence,
-                                )
-                            }}
+                            {{ formatConfidence(liveClassification.confidence) }}
                         </p>
                     </div>
                 </div>

@@ -107,9 +107,11 @@ class DocumentStatusTransitionService
             retryCount: 0,
         ));
 
+        $transitionedDocument = $transitionResult['document']->load('classification');
+
         event(new DocumentStatusUpdated(
-            documentId: $transitionResult['document']->id,
-            tenantId: $transitionResult['document']->tenant_id,
+            documentId: $transitionedDocument->id,
+            tenantId: $transitionedDocument->tenant_id,
             statusFrom: is_string($transitionResult['metadata']['from_status'] ?? null)
                 ? $transitionResult['metadata']['from_status']
                 : null,
@@ -119,9 +121,10 @@ class DocumentStatusTransitionService
             event: 'document.status.transitioned',
             traceId: $transitionResult['trace_id'],
             occurredAt: now()->toImmutable(),
+            classification: $this->formatClassificationSnapshot($transitionedDocument),
         ));
 
-        return $transitionResult['document'];
+        return $transitionedDocument;
     }
 
     public function canTransition(string $fromStatus, string $toStatus): bool
@@ -138,5 +141,23 @@ class DocumentStatusTransitionService
         }
 
         return (string) Str::uuid();
+    }
+
+    /**
+     * @return array{provider: string, type: string, confidence: float|string|null}|null
+     */
+    protected function formatClassificationSnapshot(Document $document): ?array
+    {
+        $classification = $document->classification;
+
+        if ($classification === null) {
+            return null;
+        }
+
+        return [
+            'provider' => $classification->provider,
+            'type' => $classification->type,
+            'confidence' => $classification->confidence,
+        ];
     }
 }
