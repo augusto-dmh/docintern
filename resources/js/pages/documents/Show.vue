@@ -276,243 +276,235 @@ useDocumentChannel({
             <div
                 class="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.55fr)_minmax(22rem,0.95fr)]"
             >
-                <div class="space-y-6">
-                    <PdfViewer
-                        v-if="
-                            reviewWorkspace.preview.available &&
-                            reviewWorkspace.preview.url
-                        "
-                        :document-experience="documentExperience"
-                        :src="reviewWorkspace.preview.url"
-                        :title="document.file_name"
-                        :delay="1"
-                    />
+                <PdfViewer
+                    v-if="
+                        reviewWorkspace.preview.available &&
+                        reviewWorkspace.preview.url
+                    "
+                    :document-experience="documentExperience"
+                    :src="reviewWorkspace.preview.url"
+                    :title="document.file_name"
+                    :delay="1"
+                />
 
-                    <DocumentExperienceSurface
-                        v-else
-                        :document-experience="documentExperience"
-                        :delay="1"
-                        class="p-6 sm:p-8"
+                <DocumentExperienceSurface
+                    v-else
+                    :document-experience="documentExperience"
+                    :delay="1"
+                    class="p-6 sm:p-8"
+                >
+                    <p
+                        class="doc-subtle text-xs font-semibold tracking-[0.14em] uppercase"
                     >
-                        <p
-                            class="doc-subtle text-xs font-semibold tracking-[0.14em] uppercase"
-                        >
-                            Preview unavailable
-                        </p>
-                        <h2 class="doc-title mt-2 text-2xl font-semibold">
-                            This file stays download-first for now
-                        </h2>
-                        <p class="doc-subtle mt-3 max-w-2xl text-sm leading-6">
-                            Phase 5 R1 supports inline review for PDFs only.
-                            This document can still be downloaded securely for
-                            manual inspection.
-                        </p>
+                        Preview unavailable
+                    </p>
+                    <h2 class="doc-title mt-2 text-2xl font-semibold">
+                        This file stays download-first for now
+                    </h2>
+                    <p class="doc-subtle mt-3 max-w-2xl text-sm leading-6">
+                        Phase 5 R1 supports inline review for PDFs only. This
+                        document can still be downloaded securely for manual
+                        inspection.
+                    </p>
 
-                        <dl class="mt-6 grid gap-4 sm:grid-cols-2">
-                            <div
-                                class="rounded-2xl border border-[var(--doc-border)]/70 bg-[hsl(34_32%_97%/0.88)] p-4"
-                            >
-                                <dt
-                                    class="doc-subtle text-[11px] font-semibold tracking-[0.12em] uppercase"
-                                >
-                                    File name
-                                </dt>
-                                <dd
-                                    class="doc-title mt-2 text-base font-semibold"
-                                >
-                                    {{ document.file_name }}
-                                </dd>
-                            </div>
-                            <div
-                                class="rounded-2xl border border-[var(--doc-border)]/70 bg-[hsl(34_32%_97%/0.88)] p-4"
-                            >
-                                <dt
-                                    class="doc-subtle text-[11px] font-semibold tracking-[0.12em] uppercase"
-                                >
-                                    MIME type
-                                </dt>
-                                <dd class="mt-2 text-sm">
-                                    {{
-                                        reviewWorkspace.preview.mime_type ??
-                                        document.mime_type ??
-                                        'Unknown'
-                                    }}
-                                </dd>
-                            </div>
-                        </dl>
-                    </DocumentExperienceSurface>
-                </div>
-
-                <div class="space-y-6">
-                    <ExtractedDataPanel
-                        :document-experience="documentExperience"
-                        :classification="liveClassification ?? null"
-                        :extracted-data="liveExtractedData"
-                        :delay="1"
-                    />
-
-                    <DocumentExperienceSurface
-                        :document-experience="documentExperience"
-                        :delay="2"
-                        class="p-6 sm:p-7"
-                    >
+                    <dl class="mt-6 grid gap-4 sm:grid-cols-2">
                         <div
-                            class="mb-4 flex flex-wrap items-center justify-between gap-3"
+                            class="rounded-2xl border border-[var(--doc-border)]/70 bg-[hsl(34_32%_97%/0.88)] p-4"
                         >
-                            <div>
-                                <p
-                                    class="doc-subtle text-xs font-semibold tracking-[0.14em] uppercase"
-                                >
-                                    Document record
-                                </p>
-                                <h2
-                                    class="doc-title mt-1 text-xl font-semibold"
-                                >
-                                    Metadata and routing
-                                </h2>
-                            </div>
-
-                            <DocumentStatusBadge :status="liveStatus" />
+                            <dt
+                                class="doc-subtle text-[11px] font-semibold tracking-[0.12em] uppercase"
+                            >
+                                File name
+                            </dt>
+                            <dd class="doc-title mt-2 text-base font-semibold">
+                                {{ document.file_name }}
+                            </dd>
                         </div>
-
-                        <dl class="grid gap-4 sm:grid-cols-2">
-                            <div>
-                                <dt
-                                    class="doc-subtle text-[11px] font-semibold tracking-[0.12em] uppercase"
-                                >
-                                    File size
-                                </dt>
-                                <dd class="mt-1 text-sm">
-                                    {{ formatFileSize(document.file_size) }}
-                                </dd>
-                            </div>
-
-                            <div>
-                                <dt
-                                    class="doc-subtle text-[11px] font-semibold tracking-[0.12em] uppercase"
-                                >
-                                    Uploaded by
-                                </dt>
-                                <dd class="mt-1 text-sm">
-                                    {{ document.uploader?.name ?? 'System' }}
-                                </dd>
-                            </div>
-
-                            <div>
-                                <dt
-                                    class="doc-subtle text-[11px] font-semibold tracking-[0.12em] uppercase"
-                                >
-                                    Matter
-                                </dt>
-                                <dd class="mt-1 text-sm">
-                                    <Link
-                                        v-if="document.matter"
-                                        :href="
-                                            MatterController.show(
-                                                document.matter,
-                                            )
-                                        "
-                                        class="doc-seal hover:underline"
-                                    >
-                                        {{ document.matter.title }}
-                                    </Link>
-                                    <span v-else>—</span>
-                                </dd>
-                            </div>
-
-                            <div>
-                                <dt
-                                    class="doc-subtle text-[11px] font-semibold tracking-[0.12em] uppercase"
-                                >
-                                    Recorded on
-                                </dt>
-                                <dd class="mt-1 text-sm">
-                                    {{ formatDate(document.created_at) }}
-                                </dd>
-                            </div>
-
-                            <div>
-                                <dt
-                                    class="doc-subtle text-[11px] font-semibold tracking-[0.12em] uppercase"
-                                >
-                                    Last updated
-                                </dt>
-                                <dd class="mt-1 text-sm">
-                                    {{ formatDate(liveUpdatedAt) }}
-                                </dd>
-                            </div>
-
-                            <div>
-                                <dt
-                                    class="doc-subtle text-[11px] font-semibold tracking-[0.12em] uppercase"
-                                >
-                                    MIME type
-                                </dt>
-                                <dd class="mt-1 text-sm">
-                                    {{ document.mime_type ?? 'Unknown' }}
-                                </dd>
-                            </div>
-
-                            <div class="sm:col-span-2">
-                                <dt
-                                    class="doc-subtle text-[11px] font-semibold tracking-[0.12em] uppercase"
-                                >
-                                    Storage key
-                                </dt>
-                                <dd class="mt-1 text-xs break-all">
-                                    {{ document.file_path }}
-                                </dd>
-                            </div>
-                        </dl>
-                    </DocumentExperienceSurface>
-
-                    <DocumentExperienceSurface
-                        :document-experience="documentExperience"
-                        :delay="2"
-                        class="p-6 sm:p-7"
-                    >
                         <div
-                            class="mb-4 flex flex-wrap items-center justify-between gap-2"
+                            class="rounded-2xl border border-[var(--doc-border)]/70 bg-[hsl(34_32%_97%/0.88)] p-4"
                         >
-                            <h2 class="doc-title text-xl font-semibold">
-                                Activity timeline
+                            <dt
+                                class="doc-subtle text-[11px] font-semibold tracking-[0.12em] uppercase"
+                            >
+                                MIME type
+                            </dt>
+                            <dd class="mt-2 text-sm">
+                                {{
+                                    reviewWorkspace.preview.mime_type ??
+                                    document.mime_type ??
+                                    'Unknown'
+                                }}
+                            </dd>
+                        </div>
+                    </dl>
+                </DocumentExperienceSurface>
+
+                <ExtractedDataPanel
+                    :document-experience="documentExperience"
+                    :classification="liveClassification ?? null"
+                    :extracted-data="liveExtractedData"
+                    :delay="1"
+                />
+            </div>
+
+            <div
+                class="mt-6 grid gap-6 xl:grid-cols-[minmax(20rem,0.85fr)_minmax(0,1.15fr)]"
+            >
+                <DocumentExperienceSurface
+                    :document-experience="documentExperience"
+                    :delay="2"
+                    class="p-6 sm:p-7"
+                >
+                    <div
+                        class="mb-4 flex flex-wrap items-center justify-between gap-3"
+                    >
+                        <div>
+                            <p
+                                class="doc-subtle text-xs font-semibold tracking-[0.14em] uppercase"
+                            >
+                                Document record
+                            </p>
+                            <h2 class="doc-title mt-1 text-xl font-semibold">
+                                Metadata and routing
                             </h2>
-                            <span
-                                class="doc-subtle text-xs font-semibold tracking-[0.12em] uppercase"
-                            >
-                                {{ recentActivity.length }} events
-                            </span>
                         </div>
 
-                        <ol class="space-y-3">
-                            <li
-                                v-for="activity in recentActivity"
-                                :key="activity.id"
-                                class="doc-grid-line rounded-xl border p-4"
-                            >
-                                <div
-                                    class="flex flex-wrap items-center justify-between gap-2"
-                                >
-                                    <p class="doc-title text-sm font-semibold">
-                                        {{ activityLabel(activity.action) }}
-                                    </p>
-                                    <p class="doc-subtle text-xs">
-                                        {{
-                                            formatDateTime(activity.created_at)
-                                        }}
-                                    </p>
-                                </div>
+                        <DocumentStatusBadge :status="liveStatus" />
+                    </div>
 
-                                <p class="doc-subtle mt-1 text-xs">
-                                    {{ activity.user?.name ?? 'System' }}
-                                    <span v-if="activity.ip_address">
-                                        • {{ activity.ip_address }}
-                                    </span>
+                    <dl class="grid gap-4 sm:grid-cols-2">
+                        <div>
+                            <dt
+                                class="doc-subtle text-[11px] font-semibold tracking-[0.12em] uppercase"
+                            >
+                                File size
+                            </dt>
+                            <dd class="mt-1 text-sm">
+                                {{ formatFileSize(document.file_size) }}
+                            </dd>
+                        </div>
+
+                        <div>
+                            <dt
+                                class="doc-subtle text-[11px] font-semibold tracking-[0.12em] uppercase"
+                            >
+                                Uploaded by
+                            </dt>
+                            <dd class="mt-1 text-sm">
+                                {{ document.uploader?.name ?? 'System' }}
+                            </dd>
+                        </div>
+
+                        <div>
+                            <dt
+                                class="doc-subtle text-[11px] font-semibold tracking-[0.12em] uppercase"
+                            >
+                                Matter
+                            </dt>
+                            <dd class="mt-1 text-sm">
+                                <Link
+                                    v-if="document.matter"
+                                    :href="
+                                        MatterController.show(document.matter)
+                                    "
+                                    class="doc-seal hover:underline"
+                                >
+                                    {{ document.matter.title }}
+                                </Link>
+                                <span v-else>—</span>
+                            </dd>
+                        </div>
+
+                        <div>
+                            <dt
+                                class="doc-subtle text-[11px] font-semibold tracking-[0.12em] uppercase"
+                            >
+                                Recorded on
+                            </dt>
+                            <dd class="mt-1 text-sm">
+                                {{ formatDate(document.created_at) }}
+                            </dd>
+                        </div>
+
+                        <div>
+                            <dt
+                                class="doc-subtle text-[11px] font-semibold tracking-[0.12em] uppercase"
+                            >
+                                Last updated
+                            </dt>
+                            <dd class="mt-1 text-sm">
+                                {{ formatDate(liveUpdatedAt) }}
+                            </dd>
+                        </div>
+
+                        <div>
+                            <dt
+                                class="doc-subtle text-[11px] font-semibold tracking-[0.12em] uppercase"
+                            >
+                                MIME type
+                            </dt>
+                            <dd class="mt-1 text-sm">
+                                {{ document.mime_type ?? 'Unknown' }}
+                            </dd>
+                        </div>
+
+                        <div class="sm:col-span-2">
+                            <dt
+                                class="doc-subtle text-[11px] font-semibold tracking-[0.12em] uppercase"
+                            >
+                                Storage key
+                            </dt>
+                            <dd class="mt-1 text-xs break-all">
+                                {{ document.file_path }}
+                            </dd>
+                        </div>
+                    </dl>
+                </DocumentExperienceSurface>
+
+                <DocumentExperienceSurface
+                    :document-experience="documentExperience"
+                    :delay="2"
+                    class="p-6 sm:p-7"
+                >
+                    <div
+                        class="mb-4 flex flex-wrap items-center justify-between gap-2"
+                    >
+                        <h2 class="doc-title text-xl font-semibold">
+                            Activity timeline
+                        </h2>
+                        <span
+                            class="doc-subtle text-xs font-semibold tracking-[0.12em] uppercase"
+                        >
+                            {{ recentActivity.length }} events
+                        </span>
+                    </div>
+
+                    <ol class="space-y-3">
+                        <li
+                            v-for="activity in recentActivity"
+                            :key="activity.id"
+                            class="doc-grid-line rounded-xl border p-4"
+                        >
+                            <div
+                                class="flex flex-wrap items-center justify-between gap-2"
+                            >
+                                <p class="doc-title text-sm font-semibold">
+                                    {{ activityLabel(activity.action) }}
                                 </p>
-                            </li>
-                        </ol>
-                    </DocumentExperienceSurface>
-                </div>
+                                <p class="doc-subtle text-xs">
+                                    {{ formatDateTime(activity.created_at) }}
+                                </p>
+                            </div>
+
+                            <p class="doc-subtle mt-1 text-xs">
+                                {{ activity.user?.name ?? 'System' }}
+                                <span v-if="activity.ip_address">
+                                    • {{ activity.ip_address }}
+                                </span>
+                            </p>
+                        </li>
+                    </ol>
+                </DocumentExperienceSurface>
             </div>
         </DocumentExperienceFrame>
     </AppLayout>
