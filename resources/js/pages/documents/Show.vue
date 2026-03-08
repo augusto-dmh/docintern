@@ -1,13 +1,15 @@
 <script setup lang="ts">
-import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
-import { ref, watch } from 'vue';
 import DocumentController from '@/actions/App/Http/Controllers/DocumentController';
 import MatterController from '@/actions/App/Http/Controllers/MatterController';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
+import { ref, watch } from 'vue';
 import DocumentExperienceFrame from '@/components/documents/DocumentExperienceFrame.vue';
 import DocumentExperienceSurface from '@/components/documents/DocumentExperienceSurface.vue';
 import DocumentStatusBadge from '@/components/documents/DocumentStatusBadge.vue';
 import { Button } from '@/components/ui/button';
+import UploadProgressTracker from '@/components/UploadProgressTracker.vue';
 import { useDocumentChannel } from '@/composables/useDocumentChannel';
+import { useEchoConnectionStatus } from '@/composables/useEchoConnectionStatus';
 import AppLayout from '@/layouts/AppLayout.vue';
 import {
     type BreadcrumbItem,
@@ -27,9 +29,11 @@ const canEditDocuments = permissions.includes('edit documents');
 const canApproveDocuments = permissions.includes('approve documents');
 const liveStatus = ref(props.document.status);
 const liveClassification = ref(props.document.classification);
+const liveUpdatedAt = ref(props.document.updated_at);
 const refreshingDocumentSnapshot = ref(false);
 const reviewForm = useForm({});
 const approveForm = useForm({});
+const connectionStatus = useEchoConnectionStatus();
 
 const breadcrumbItems: BreadcrumbItem[] = [
     {
@@ -119,7 +123,9 @@ function canApproveDocument(): boolean {
     return canApproveDocuments && liveStatus.value === 'reviewed';
 }
 
-function shouldRefreshDocumentSnapshotForClassification(status: string): boolean {
+function shouldRefreshDocumentSnapshotForClassification(
+    status: string,
+): boolean {
     return ['ready_for_review', 'reviewed', 'approved'].includes(status);
 }
 
@@ -165,6 +171,13 @@ watch(
     },
 );
 
+watch(
+    () => props.document.updated_at,
+    (updatedAt) => {
+        liveUpdatedAt.value = updatedAt;
+    },
+);
+
 useDocumentChannel({
     tenantId: props.document.tenant_id,
     documentId: props.document.id,
@@ -174,6 +187,7 @@ useDocumentChannel({
         }
 
         liveStatus.value = payload.status_to;
+        liveUpdatedAt.value = payload.occurred_at;
 
         if (payload.classification !== null) {
             liveClassification.value = payload.classification;
@@ -182,8 +196,8 @@ useDocumentChannel({
         }
 
         if (
-            liveClassification.value === null
-            && shouldRefreshDocumentSnapshotForClassification(payload.status_to)
+            liveClassification.value === null &&
+            shouldRefreshDocumentSnapshotForClassification(payload.status_to)
         ) {
             refreshDocumentSnapshot();
         }
@@ -252,6 +266,15 @@ useDocumentChannel({
             >
                 {{ reviewForm.errors.status ?? approveForm.errors.status }}
             </p>
+
+            <UploadProgressTracker
+                :document-experience="documentExperience"
+                :items="[]"
+                :document-status="liveStatus"
+                :connection-status="connectionStatus"
+                :updated-at="liveUpdatedAt"
+                class="mt-6"
+            />
 
             <DocumentExperienceSurface
                 :document-experience="documentExperience"
@@ -374,7 +397,10 @@ useDocumentChannel({
             >
                 <h2 class="doc-title text-xl font-semibold">Classification</h2>
 
-                <div v-if="liveClassification" class="mt-4 grid gap-5 sm:grid-cols-3">
+                <div
+                    v-if="liveClassification"
+                    class="mt-4 grid gap-5 sm:grid-cols-3"
+                >
                     <div>
                         <p
                             class="doc-subtle text-xs font-semibold tracking-[0.12em] uppercase"
@@ -402,7 +428,9 @@ useDocumentChannel({
                             Confidence
                         </p>
                         <p class="mt-1 text-sm">
-                            {{ formatConfidence(liveClassification.confidence) }}
+                            {{
+                                formatConfidence(liveClassification.confidence)
+                            }}
                         </p>
                     </div>
                 </div>
