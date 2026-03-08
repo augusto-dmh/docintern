@@ -1,4 +1,4 @@
-.PHONY: up down build shell composer artisan migrate seed fresh test npm logs s3-ls s3-shell worker-logs worker-restart worker-shell rabbitmq-queues scheduler-logs environment-check cutover-check queue-health-check
+.PHONY: up down build shell composer artisan migrate seed fresh test npm logs s3-ls s3-shell worker-logs worker-restart worker-shell rabbitmq-queues scheduler-logs reverb-logs reverb-restart environment-check cutover-check queue-health-check
 
 up:
 	docker compose up -d
@@ -56,6 +56,12 @@ rabbitmq-queues:
 
 scheduler-logs:
 	docker compose logs -f scheduler
+
+reverb-logs:
+	docker compose logs -f reverb
+
+reverb-restart:
+	docker compose restart reverb
 
 environment-check:
 	docker compose exec app php artisan docintern:cutover-check

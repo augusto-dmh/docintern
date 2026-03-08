@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Events\DocumentProcessingEvent;
+use App\Events\DocumentStatusUpdated;
 use App\Models\Document;
 use App\Models\Matter;
 use App\Models\User;
@@ -108,6 +109,16 @@ class DocumentUploadService
             timestamp: now()->toImmutable(),
             metadata: $uploadResult['metadata'],
             retryCount: 0,
+        ));
+
+        event(new DocumentStatusUpdated(
+            documentId: $uploadResult['document']->id,
+            tenantId: $matter->tenant_id,
+            statusFrom: null,
+            statusTo: 'uploaded',
+            event: 'document.uploaded',
+            traceId: $uploadResult['trace_id'],
+            occurredAt: now()->toImmutable(),
         ));
 
         return $uploadResult['document'];
