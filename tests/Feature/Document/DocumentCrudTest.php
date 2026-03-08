@@ -3,6 +3,7 @@
 use App\Models\AuditLog;
 use App\Models\Client;
 use App\Models\Document;
+use App\Models\DocumentAnnotation;
 use App\Models\DocumentClassification;
 use App\Models\ExtractedData;
 use App\Models\Matter;
@@ -161,6 +162,8 @@ test('document show page can be rendered and logs a view event', function () {
             ->where('document.uploader.id', $user->id)
             ->where('reviewWorkspace.preview.available', true)
             ->where('reviewWorkspace.preview.mode', 'pdf')
+            ->where('reviewWorkspace.permissions.can_annotate', true)
+            ->has('reviewWorkspace.annotations', 0)
         );
 
     expect(AuditLog::query()
@@ -203,6 +206,14 @@ test('document show page includes classification payload when present', function
             'source' => 'openai.chat.completions',
         ],
     ]);
+    DocumentAnnotation::factory()->create([
+        'tenant_id' => $tenant->id,
+        'document_id' => $document->id,
+        'user_id' => $user->id,
+        'type' => 'comment',
+        'page_number' => 1,
+        'content' => 'Double-check the renewal clause.',
+    ]);
 
     tenancy()->initialize($tenant);
 
@@ -220,6 +231,9 @@ test('document show page includes classification payload when present', function
             ->where('reviewWorkspace.preview.available', true)
             ->where('reviewWorkspace.preview.mode', 'pdf')
             ->where('reviewWorkspace.preview.mime_type', 'application/pdf')
+            ->where('reviewWorkspace.permissions.can_annotate', true)
+            ->where('reviewWorkspace.annotations.0.type', 'comment')
+            ->where('reviewWorkspace.annotations.0.is_owner', true)
         );
 });
 
@@ -242,6 +256,8 @@ test('document show page marks non pdf documents as unsupported preview mode', f
             ->component('documents/Show')
             ->where('reviewWorkspace.preview.available', false)
             ->where('reviewWorkspace.preview.mode', 'unsupported')
+            ->where('reviewWorkspace.permissions.can_annotate', false)
+            ->has('reviewWorkspace.annotations', 0)
             ->where(
                 'reviewWorkspace.preview.mime_type',
                 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -415,7 +431,6 @@ test('document download redirects to a presigned url and logs event', function (
 test('document preview streams pdf content for authorized tenant user', function () {
     [$tenant, $user, $matter] = createDocumentCrudContext();
     tenancy()->initialize($tenant);
-    Storage::fake('s3');
 
     $document = Document::factory()->create([
         'tenant_id' => $tenant->id,
@@ -426,7 +441,30 @@ test('document preview streams pdf content for authorized tenant user', function
         'file_path' => "tenants/{$tenant->id}/documents/{$matter->id}/review-copy.pdf",
     ]);
 
-    Storage::disk('s3')->put($document->file_path, 'pdf-preview-body');
+    $stream = fopen('php://temp', 'r+');
+    fwrite($stream, 'pdf-preview-body');
+    rewind($stream);
+
+    $this->mock(DocumentUploadService::class, function (MockInterface $mock) use ($document, $stream): void {
+        $mock->shouldReceive('supportsInlinePreview')
+            ->once()
+            ->withArgs(function (Document $resolvedDocument) use ($document): bool {
+                return $resolvedDocument->id === $document->id;
+            })
+            ->andReturnTrue();
+        $mock->shouldReceive('readStream')
+            ->once()
+            ->withArgs(function (Document $resolvedDocument) use ($document): bool {
+                return $resolvedDocument->id === $document->id;
+            })
+            ->andReturn($stream);
+        $mock->shouldReceive('previewMimeType')
+            ->once()
+            ->withArgs(function (Document $resolvedDocument) use ($document): bool {
+                return $resolvedDocument->id === $document->id;
+            })
+            ->andReturn('application/pdf');
+    });
 
     $response = $this->actingAs($user)
         ->withHeaders(['X-Tenant-ID' => $tenant->id])

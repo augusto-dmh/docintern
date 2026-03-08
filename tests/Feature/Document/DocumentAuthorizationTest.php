@@ -2,6 +2,7 @@
 
 use App\Models\Client;
 use App\Models\Document;
+use App\Models\DocumentAnnotation;
 use App\Models\Matter;
 use App\Models\Tenant;
 use App\Models\User;
@@ -187,3 +188,61 @@ test('approve permission is enforced by policy', function (
 
     expect($policy->approve($user, $document))->toBe($canApprove);
 })->with('document-role-matrix');
+
+test('annotate permission follows edit documents permission', function (
+    string $role,
+    bool $canView,
+    bool $canCreate,
+    bool $canUpdate,
+): void {
+    [$tenant, $user, $matter, $document] = createDocumentAuthContext($role);
+    tenancy()->initialize($tenant);
+
+    $policy = app(DocumentPolicy::class);
+
+    expect($policy->annotate($user, $document))->toBe($canUpdate);
+})->with('document-role-matrix');
+
+test('annotation deletion is allowed for owners or approvers', function (): void {
+    [$tenant, $owner, $matter, $document] = createDocumentAuthContext('associate');
+    $approver = User::factory()->forTenant($tenant)->create();
+    $otherAssociate = User::factory()->forTenant($tenant)->create();
+
+    tenancy()->initialize($tenant);
+    setPermissionsTeamId($tenant->id);
+    $approver->assignRole('partner');
+    $otherAssociate->assignRole('associate');
+
+    $annotation = DocumentAnnotation::factory()->create([
+        'tenant_id' => $tenant->id,
+        'document_id' => $document->id,
+        'user_id' => $owner->id,
+    ]);
+
+    $this->actingAs($owner)
+        ->withHeaders(['X-Tenant-ID' => $tenant->id])
+        ->delete(route('documents.annotations.destroy', [$document, $annotation]))
+        ->assertRedirect(route('documents.show', $document));
+
+    $annotation = DocumentAnnotation::factory()->create([
+        'tenant_id' => $tenant->id,
+        'document_id' => $document->id,
+        'user_id' => $owner->id,
+    ]);
+
+    $this->actingAs($approver)
+        ->withHeaders(['X-Tenant-ID' => $tenant->id])
+        ->delete(route('documents.annotations.destroy', [$document, $annotation]))
+        ->assertRedirect(route('documents.show', $document));
+
+    $annotation = DocumentAnnotation::factory()->create([
+        'tenant_id' => $tenant->id,
+        'document_id' => $document->id,
+        'user_id' => $owner->id,
+    ]);
+
+    $this->actingAs($otherAssociate)
+        ->withHeaders(['X-Tenant-ID' => $tenant->id])
+        ->delete(route('documents.annotations.destroy', [$document, $annotation]))
+        ->assertForbidden();
+});

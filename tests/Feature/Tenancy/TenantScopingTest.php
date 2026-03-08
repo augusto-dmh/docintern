@@ -2,6 +2,7 @@
 
 use App\Models\Client;
 use App\Models\Document;
+use App\Models\DocumentAnnotation;
 use App\Models\Matter;
 use App\Models\Tenant;
 use App\Models\User;
@@ -124,6 +125,67 @@ test('tenant user cannot access other tenant document preview via http', functio
     $response = $this->actingAs($userA)
         ->withHeaders(['X-Tenant-ID' => $tenantA->id])
         ->get(route('documents.preview', $documentB));
+
+    $response->assertNotFound();
+});
+
+test('tenant user cannot create annotation for other tenant document via http', function () {
+    $tenantA = Tenant::factory()->create();
+    $tenantB = Tenant::factory()->create();
+    $userA = User::factory()->forTenant($tenantA)->create();
+    $clientB = Client::factory()->create(['tenant_id' => $tenantB->id]);
+    $matterB = Matter::factory()->create([
+        'tenant_id' => $tenantB->id,
+        'client_id' => $clientB->id,
+    ]);
+    $documentB = Document::factory()->create([
+        'tenant_id' => $tenantB->id,
+        'matter_id' => $matterB->id,
+        'mime_type' => 'application/pdf',
+    ]);
+
+    tenancy()->initialize($tenantA);
+
+    $response = $this->actingAs($userA)
+        ->withHeaders(['X-Tenant-ID' => $tenantA->id])
+        ->post(route('documents.annotations.store', $documentB), [
+            'type' => 'highlight',
+            'page_number' => 1,
+            'coordinates' => [
+                'x' => 0.1,
+                'y' => 0.1,
+                'width' => 0.2,
+                'height' => 0.1,
+            ],
+        ]);
+
+    $response->assertNotFound();
+});
+
+test('tenant user cannot delete annotation for other tenant document via http', function () {
+    $tenantA = Tenant::factory()->create();
+    $tenantB = Tenant::factory()->create();
+    $userA = User::factory()->forTenant($tenantA)->create();
+    $clientB = Client::factory()->create(['tenant_id' => $tenantB->id]);
+    $matterB = Matter::factory()->create([
+        'tenant_id' => $tenantB->id,
+        'client_id' => $clientB->id,
+    ]);
+    $documentB = Document::factory()->create([
+        'tenant_id' => $tenantB->id,
+        'matter_id' => $matterB->id,
+        'mime_type' => 'application/pdf',
+    ]);
+    $annotationB = DocumentAnnotation::factory()->create([
+        'tenant_id' => $tenantB->id,
+        'document_id' => $documentB->id,
+    ]);
+
+    tenancy()->initialize($tenantA);
+
+    $response = $this->actingAs($userA)
+        ->withHeaders(['X-Tenant-ID' => $tenantA->id])
+        ->delete(route('documents.annotations.destroy', [$documentB, $annotationB]));
 
     $response->assertNotFound();
 });
