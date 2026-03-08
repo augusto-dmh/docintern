@@ -51,15 +51,20 @@ const props = withDefaults(defineProps<Props>(), {
 
 const loading = ref(true);
 const errorMessage = ref<string | null>(null);
-const zoom = ref(1.1);
+const zoomMultiplier = ref(1);
 const pageNumbers = ref<number[]>([]);
+const viewportElement = ref<HTMLDivElement | null>(null);
+const fitScale = ref(1);
 
 const canvasElements = new Map<number, HTMLCanvasElement>();
 let documentHandle: PdfDocumentHandle | null = null;
 let loadingTask: PdfLoadingTask | null = null;
 let renderToken = 0;
+let naturalPageWidth = 0;
+let resizeObserver: ResizeObserver | null = null;
 
-const zoomLabel = computed(() => `${Math.round(zoom.value * 100)}%`);
+const renderScale = computed(() => fitScale.value * zoomMultiplier.value);
+const zoomLabel = computed(() => `${Math.round(zoomMultiplier.value * 100)}%`);
 
 function setCanvasRef(
     pageNumber: number,
@@ -75,17 +80,44 @@ function setCanvasRef(
 }
 
 function zoomOut(): void {
-    zoom.value = Math.max(0.8, Number((zoom.value - 0.1).toFixed(1)));
+    zoomMultiplier.value = Math.max(
+        0.8,
+        Number((zoomMultiplier.value - 0.1).toFixed(1)),
+    );
 }
 
 function zoomIn(): void {
-    zoom.value = Math.min(1.8, Number((zoom.value + 0.1).toFixed(1)));
+    zoomMultiplier.value = Math.min(
+        1.4,
+        Number((zoomMultiplier.value + 0.1).toFixed(1)),
+    );
+}
+
+function syncFitScale(): void {
+    if (naturalPageWidth === 0 || viewportElement.value === null) {
+        return;
+    }
+
+    const viewportWidth = viewportElement.value.clientWidth;
+
+    if (viewportWidth === 0) {
+        return;
+    }
+
+    const horizontalPadding = viewportWidth >= 768 ? 64 : 36;
+    const availableWidth = Math.max(viewportWidth - horizontalPadding, 240);
+
+    fitScale.value = Math.max(
+        0.72,
+        Math.min(1.05, availableWidth / naturalPageWidth),
+    );
 }
 
 async function destroyDocumentHandle(): Promise<void> {
     renderToken += 1;
     pageNumbers.value = [];
     canvasElements.clear();
+    naturalPageWidth = 0;
 
     if (loadingTask?.destroy) {
         loadingTask.destroy();
@@ -125,7 +157,7 @@ async function renderPages(): Promise<void> {
             return;
         }
 
-        const viewport = page.getViewport({ scale: zoom.value });
+        const viewport = page.getViewport({ scale: renderScale.value });
         const context = canvas.getContext('2d');
 
         if (context === null) {
@@ -159,6 +191,9 @@ async function loadDocument(): Promise<void> {
     try {
         loadingTask = getDocument(props.src) as PdfLoadingTask;
         documentHandle = await loadingTask.promise;
+        const firstPage = await documentHandle.getPage(1);
+        naturalPageWidth = firstPage.getViewport({ scale: 1 }).width;
+        syncFitScale();
         pageNumbers.value = Array.from(
             { length: documentHandle.numPages },
             (_, index) => index + 1,
@@ -186,7 +221,7 @@ watch(
     },
 );
 
-watch(zoom, async () => {
+watch(renderScale, async () => {
     if (documentHandle === null) {
         return;
     }
@@ -194,7 +229,24 @@ watch(zoom, async () => {
     await renderPages();
 });
 
+onMounted(() => {
+    resizeObserver = new ResizeObserver(() => {
+        const previousFitScale = fitScale.value;
+
+        syncFitScale();
+
+        if (Math.abs(previousFitScale - fitScale.value) > 0.01) {
+            void renderPages();
+        }
+    });
+
+    if (viewportElement.value !== null) {
+        resizeObserver.observe(viewportElement.value);
+    }
+});
+
 onBeforeUnmount(async () => {
+    resizeObserver?.disconnect();
     await destroyDocumentHandle();
 });
 </script>
@@ -208,13 +260,13 @@ onBeforeUnmount(async () => {
         <div
             class="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--doc-border)]/70 px-5 py-4 sm:px-6"
         >
-            <div>
+            <div class="min-w-0">
                 <p
                     class="doc-subtle text-xs font-semibold tracking-[0.14em] uppercase"
                 >
                     Inline preview
                 </p>
-                <h2 class="doc-title mt-1 text-lg font-semibold">
+                <h2 class="doc-title mt-1 truncate text-lg font-semibold">
                     {{ title }}
                 </h2>
             </div>
@@ -244,17 +296,42 @@ onBeforeUnmount(async () => {
             </div>
         </div>
 
-        <div class="bg-[hsl(32_37%_93%/0.85)] px-3 py-4 sm:px-5">
+        <div
+            ref="viewportElement"
+            class="bg-[linear-gradient(180deg,hsl(34_40%_94%/0.84),hsl(33_32%_92%/0.92))] px-3 py-4 sm:px-5"
+        >
             <div
                 v-if="loading"
-                class="flex min-h-[28rem] items-center justify-center rounded-[1.6rem] border border-dashed border-[var(--doc-border)]/80 bg-white/70 px-6 text-center"
+                class="rounded-[1.6rem] border border-[var(--doc-border)]/70 bg-[hsl(35_42%_97%/0.94)] p-4 shadow-[inset_0_1px_0_hsl(0_0%_100%/0.72)]"
             >
-                <div class="space-y-3">
-                    <p class="doc-title text-base font-semibold">
-                        Preparing the review copy
-                    </p>
-                    <p class="doc-subtle text-sm">
-                        Loading the authenticated PDF preview for inline review.
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between gap-3">
+                        <div class="space-y-2">
+                            <div
+                                class="h-3 w-24 rounded-full bg-[var(--doc-border)]/45"
+                            />
+                            <div
+                                class="h-8 w-56 rounded-full bg-[var(--doc-border)]/35"
+                            />
+                        </div>
+                        <div
+                            class="h-10 w-28 rounded-full bg-[var(--doc-border)]/35"
+                        />
+                    </div>
+
+                    <div
+                        class="rounded-[1.35rem] border border-[var(--doc-border)]/60 bg-white/92 p-4"
+                    >
+                        <div
+                            class="mb-3 h-3 w-16 rounded-full bg-[var(--doc-border)]/45"
+                        />
+                        <div
+                            class="mx-auto aspect-[0.72] w-full max-w-[42rem] rounded-[1rem] border border-[var(--doc-border)]/35 bg-[linear-gradient(180deg,hsl(34_14%_95%),hsl(35_10%_91%))] shadow-[0_20px_40px_hsl(25_16%_42%/0.08)]"
+                        />
+                    </div>
+
+                    <p class="doc-subtle px-2 text-sm">
+                        Rendering the secure review copy.
                     </p>
                 </div>
             </div>
@@ -275,12 +352,12 @@ onBeforeUnmount(async () => {
 
             <div
                 v-else
-                class="max-h-[78vh] space-y-4 overflow-auto rounded-[1.6rem] border border-[var(--doc-border)]/70 bg-[hsl(34_33%_98%/0.96)] p-3 shadow-[inset_0_1px_0_hsl(0_0%_100%/0.75)]"
+                class="max-h-[74vh] space-y-5 overflow-auto rounded-[1.6rem] border border-[var(--doc-border)]/70 bg-[hsl(34_33%_98%/0.96)] p-3 shadow-[inset_0_1px_0_hsl(0_0%_100%/0.75)] sm:p-4"
             >
                 <article
                     v-for="pageNumber in pageNumbers"
                     :key="pageNumber"
-                    class="rounded-[1.35rem] border border-[var(--doc-border)]/65 bg-white/95 p-3 shadow-[0_18px_40px_hsl(22_18%_45%/0.09)]"
+                    class="rounded-[1.35rem] border border-[var(--doc-border)]/65 bg-[linear-gradient(180deg,hsl(38_34%_97%),hsl(36_28%_94%))] p-3 shadow-[0_18px_40px_hsl(22_18%_45%/0.09)]"
                 >
                     <div class="mb-3 flex items-center justify-between gap-3">
                         <span
@@ -291,7 +368,7 @@ onBeforeUnmount(async () => {
                     </div>
 
                     <div
-                        class="overflow-auto rounded-[1rem] bg-[hsl(36_22%_92%/0.7)] p-2"
+                        class="rounded-[1rem] bg-[hsl(36_22%_92%/0.52)] p-2 sm:p-3"
                     >
                         <canvas
                             :ref="
@@ -301,7 +378,7 @@ onBeforeUnmount(async () => {
                                         element as HTMLCanvasElement | null,
                                     )
                             "
-                            class="mx-auto block max-w-full rounded-[0.75rem] bg-white"
+                            class="mx-auto block rounded-[0.95rem] bg-white shadow-[0_24px_55px_hsl(24_18%_26%/0.12)]"
                         />
                     </div>
                 </article>
