@@ -144,6 +144,7 @@ test('document show page can be rendered and logs a view event', function () {
         'tenant_id' => $tenant->id,
         'matter_id' => $matter->id,
         'uploaded_by' => $user->id,
+        'status' => 'classifying',
     ]);
     tenancy()->initialize($tenant);
 
@@ -154,6 +155,7 @@ test('document show page can be rendered and logs a view event', function () {
         ->assertInertia(fn (Assert $page) => $page
             ->component('documents/Show')
             ->where('document.id', $document->id)
+            ->where('document.status', 'classifying')
             ->where('document.matter.id', $matter->id)
             ->where('document.uploader.id', $user->id)
         );
@@ -189,6 +191,7 @@ test('document show page includes classification payload when present', function
         ->assertSuccessful()
         ->assertInertia(fn (Assert $page) => $page
             ->component('documents/Show')
+            ->where('document.status', 'ready_for_review')
             ->where('document.classification.provider', 'openai')
             ->where('document.classification.type', 'contract')
         );
