@@ -1,27 +1,35 @@
 <script setup lang="ts">
-import { dashboard } from '@/routes';
-import { index as clientsIndex } from '@/routes/clients';
-import { index as documentsIndex } from '@/routes/documents';
-import { index as mattersIndex } from '@/routes/matters';
 import { Head, Link, usePage } from '@inertiajs/vue3';
 import { ArrowRight, Briefcase, FileText, Users } from 'lucide-vue-next';
 import { ref, watch } from 'vue';
 import ProcessingPipeline from '@/components/dashboard/ProcessingPipeline.vue';
+import RecentFailuresPanel from '@/components/dashboard/RecentFailuresPanel.vue';
 import { useDocumentChannel } from '@/composables/useDocumentChannel';
 import { useEchoConnectionStatus } from '@/composables/useEchoConnectionStatus';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { isFailureDocumentStatus } from '@/lib/document-pipeline';
+import {
+    applyDashboardStatsDelta,
+    seedRealtimeDocumentState,
+    shouldApplyRealtimeUpdate,
+    syncRecentFailures,
+    upsertPipelineDocument,
+} from '@/lib/dashboard-realtime';
+import { dashboard } from '@/routes';
+import { index as clientsIndex } from '@/routes/clients';
+import { index as documentsIndex } from '@/routes/documents';
+import { index as mattersIndex } from '@/routes/matters';
 import {
     type BreadcrumbItem,
+    type DashboardFailureDocument,
     type DashboardPipelineDocument,
     type DashboardStats,
-    type DocumentStatus,
 } from '@/types';
 
 const props = defineProps<{
     realtimeTenantId: string | null;
     pipelineDocuments: DashboardPipelineDocument[];
     stats: DashboardStats;
+    recentFailures: DashboardFailureDocument[];
 }>();
 
 const page = usePage();
@@ -30,6 +38,10 @@ const livePipelineDocuments = ref<DashboardPipelineDocument[]>([
     ...props.pipelineDocuments,
 ]);
 const liveStats = ref<DashboardStats>({ ...props.stats });
+const liveRecentFailures = ref<DashboardFailureDocument[]>([
+    ...props.recentFailures,
+]);
+const liveDocumentState = ref(seedRealtimeDocumentState(props.pipelineDocuments));
 const connectionStatus = useEchoConnectionStatus();
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -38,11 +50,6 @@ const breadcrumbs: BreadcrumbItem[] = [
         href: dashboard().url,
     },
 ];
-
-const pendingReviewStatuses = new Set<DocumentStatus>([
-    'ready_for_review',
-    'reviewed',
-]);
 
 const quickLinks = [
     {
@@ -69,6 +76,7 @@ watch(
     () => props.pipelineDocuments,
     (documents) => {
         livePipelineDocuments.value = [...documents];
+        liveDocumentState.value = seedRealtimeDocumentState(documents);
     },
 );
 
@@ -80,92 +88,45 @@ watch(
     { deep: true },
 );
 
-function isPendingReviewStatus(status: DocumentStatus): boolean {
-    return pendingReviewStatuses.has(status);
-}
-
-function isFailedStatus(status: DocumentStatus): boolean {
-    return isFailureDocumentStatus(status);
-}
-
-function applyStatsDelta(
-    fromStatus: DocumentStatus | null,
-    toStatus: DocumentStatus,
-): void {
-    if (fromStatus !== 'approved' && toStatus === 'approved') {
-        liveStats.value.processed_today += 1;
-    }
-
-    if (
-        fromStatus &&
-        isPendingReviewStatus(fromStatus) &&
-        !isPendingReviewStatus(toStatus) &&
-        liveStats.value.pending_review > 0
-    ) {
-        liveStats.value.pending_review -= 1;
-    }
-
-    if (
-        !fromStatus ||
-        (!isPendingReviewStatus(fromStatus) && isPendingReviewStatus(toStatus))
-    ) {
-        liveStats.value.pending_review += 1;
-    }
-
-    if (
-        fromStatus &&
-        isFailedStatus(fromStatus) &&
-        !isFailedStatus(toStatus) &&
-        liveStats.value.failed > 0
-    ) {
-        liveStats.value.failed -= 1;
-    }
-
-    if (
-        !fromStatus ||
-        (!isFailedStatus(fromStatus) && isFailedStatus(toStatus))
-    ) {
-        liveStats.value.failed += 1;
-    }
-}
+watch(
+    () => props.recentFailures,
+    (recentFailures) => {
+        liveRecentFailures.value = [...recentFailures];
+    },
+);
 
 if (props.realtimeTenantId) {
     useDocumentChannel({
         tenantId: props.realtimeTenantId,
         onStatusUpdated: (payload) => {
-            const existingDocumentIndex = livePipelineDocuments.value.findIndex(
-                (document) => document.id === payload.document_id,
-            );
-            const previousStatus =
-                existingDocumentIndex >= 0
-                    ? livePipelineDocuments.value[existingDocumentIndex].status
-                    : null;
+            const knownState = liveDocumentState.value.get(payload.document_id);
 
-            if (existingDocumentIndex >= 0) {
-                livePipelineDocuments.value[existingDocumentIndex] = {
-                    ...livePipelineDocuments.value[existingDocumentIndex],
-                    status: payload.status_to,
-                    updated_at: payload.occurred_at,
-                };
-            } else {
-                livePipelineDocuments.value.unshift({
-                    id: payload.document_id,
-                    title: `Document #${payload.document_id}`,
-                    status: payload.status_to,
-                    matter_title: null,
-                    updated_at: payload.occurred_at,
-                });
+            if (!shouldApplyRealtimeUpdate(knownState, payload)) {
+                return;
             }
 
-            livePipelineDocuments.value = livePipelineDocuments.value
-                .sort(
-                    (firstDocument, secondDocument) =>
-                        new Date(secondDocument.updated_at).getTime() -
-                        new Date(firstDocument.updated_at).getTime(),
-                )
-                .slice(0, 8);
+            const previousStatus =
+                knownState?.status === payload.status_to
+                    ? knownState.status
+                    : payload.status_from ?? knownState?.status ?? null;
 
-            applyStatsDelta(previousStatus, payload.status_to);
+            livePipelineDocuments.value = upsertPipelineDocument(
+                livePipelineDocuments.value,
+                payload,
+            );
+            liveStats.value = applyDashboardStatsDelta(
+                liveStats.value,
+                previousStatus,
+                payload.status_to,
+            );
+            liveRecentFailures.value = syncRecentFailures(
+                liveRecentFailures.value,
+                payload,
+            );
+            liveDocumentState.value.set(payload.document_id, {
+                status: payload.status_to,
+                occurred_at: payload.occurred_at,
+            });
         },
     });
 }
@@ -258,6 +219,8 @@ if (props.realtimeTenantId) {
             </div>
 
             <div class="mt-5 space-y-3">
+                <RecentFailuresPanel :failures="liveRecentFailures" />
+
                 <ProcessingPipeline
                     :documents="livePipelineDocuments"
                     :connection-status="connectionStatus"
