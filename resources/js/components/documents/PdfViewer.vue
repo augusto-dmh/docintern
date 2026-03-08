@@ -302,38 +302,85 @@ onBeforeUnmount(async () => {
         >
             <div
                 v-if="loading"
-                class="rounded-[1.6rem] border border-[var(--doc-border)]/70 bg-[hsl(35_42%_97%/0.94)] p-4 shadow-[inset_0_1px_0_hsl(0_0%_100%/0.72)]"
+                class="max-h-[74vh] overflow-hidden rounded-[1.6rem] border border-[var(--doc-border)]/70 bg-[hsl(34_33%_98%/0.96)] p-3 shadow-[inset_0_1px_0_hsl(0_0%_100%/0.75)] sm:p-4"
             >
-                <div class="space-y-4">
-                    <div class="flex items-center justify-between gap-3">
-                        <div class="space-y-2">
-                            <div
-                                class="h-3 w-24 rounded-full bg-[var(--doc-border)]/45"
-                            />
-                            <div
-                                class="h-8 w-56 rounded-full bg-[var(--doc-border)]/35"
-                            />
-                        </div>
-                        <div
-                            class="h-10 w-28 rounded-full bg-[var(--doc-border)]/35"
-                        />
+                <article
+                    class="rounded-[1.35rem] border border-[var(--doc-border)]/65 bg-[linear-gradient(180deg,hsl(38_34%_97%),hsl(36_28%_94%))] p-3 shadow-[0_18px_40px_hsl(22_18%_45%/0.09)]"
+                >
+                    <div class="mb-3 flex items-center justify-between gap-3">
+                        <span
+                            class="doc-subtle text-[11px] font-semibold tracking-[0.14em] uppercase"
+                        >
+                            Preparing page 1
+                        </span>
+                        <span class="doc-subtle text-xs">
+                            Rendering secure review copy
+                        </span>
                     </div>
 
                     <div
-                        class="rounded-[1.35rem] border border-[var(--doc-border)]/60 bg-white/92 p-4"
+                        class="rounded-[1rem] bg-[hsl(36_22%_92%/0.52)] p-2 sm:p-3"
                     >
                         <div
-                            class="mb-3 h-3 w-16 rounded-full bg-[var(--doc-border)]/45"
-                        />
-                        <div
-                            class="mx-auto aspect-[0.72] w-full max-w-[42rem] rounded-[1rem] border border-[var(--doc-border)]/35 bg-[linear-gradient(180deg,hsl(34_14%_95%),hsl(35_10%_91%))] shadow-[0_20px_40px_hsl(25_16%_42%/0.08)]"
-                        />
-                    </div>
+                            class="mx-auto aspect-[0.72] w-full max-w-[42rem] rounded-[0.95rem] bg-white p-6 shadow-[0_24px_55px_hsl(24_18%_26%/0.12)] sm:p-10"
+                        >
+                            <div class="space-y-6">
+                                <div class="flex justify-between gap-4">
+                                    <div class="space-y-2">
+                                        <div
+                                            class="h-3 w-28 rounded-full bg-[var(--doc-border)]/45"
+                                        />
+                                        <div
+                                            class="h-3 w-40 rounded-full bg-[var(--doc-border)]/32"
+                                        />
+                                    </div>
+                                    <div
+                                        class="h-4 w-24 rounded-full bg-[var(--doc-border)]/38"
+                                    />
+                                </div>
 
-                    <p class="doc-subtle px-2 text-sm">
-                        Rendering the secure review copy.
-                    </p>
-                </div>
+                                <div class="space-y-3 pt-4">
+                                    <div
+                                        class="mx-auto h-4 w-40 rounded-full bg-[var(--doc-border)]/42"
+                                    />
+                                    <div
+                                        class="mx-auto h-3 w-56 rounded-full bg-[var(--doc-border)]/30"
+                                    />
+                                </div>
+
+                                <div class="space-y-3 pt-4">
+                                    <div
+                                        class="h-3 w-full rounded-full bg-[var(--doc-border)]/22"
+                                    />
+                                    <div
+                                        class="h-3 w-full rounded-full bg-[var(--doc-border)]/22"
+                                    />
+                                    <div
+                                        class="h-3 w-[88%] rounded-full bg-[var(--doc-border)]/22"
+                                    />
+                                    <div
+                                        class="h-3 w-[92%] rounded-full bg-[var(--doc-border)]/22"
+                                    />
+                                    <div
+                                        class="h-3 w-[72%] rounded-full bg-[var(--doc-border)]/22"
+                                    />
+                                </div>
+
+                                <div class="space-y-3 pt-6">
+                                    <div
+                                        class="h-3 w-[85%] rounded-full bg-[var(--doc-border)]/18"
+                                    />
+                                    <div
+                                        class="h-3 w-[90%] rounded-full bg-[var(--doc-border)]/18"
+                                    />
+                                    <div
+                                        class="h-3 w-[76%] rounded-full bg-[var(--doc-border)]/18"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </article>
             </div>
 
             <div
