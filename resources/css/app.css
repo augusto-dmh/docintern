@@ -352,6 +352,12 @@
         transform: translate3d(0, -8px, 0) scale(0.985);
     }
 
+    .workspace-notice-enter-to,
+    .workspace-notice-leave-from {
+        opacity: 1;
+        transform: translate3d(0, 0, 0) scale(1);
+    }
+
     .workspace-notice-move {
         transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
     }
