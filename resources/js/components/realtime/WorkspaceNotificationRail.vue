@@ -73,10 +73,12 @@ useDocumentChannel({
 
 <template>
     <div
-        v-if="notifications.length > 0"
         class="pointer-events-none fixed inset-x-4 top-4 z-50 sm:inset-x-auto sm:top-5 sm:right-5 sm:w-[min(26rem,calc(100vw-2rem))]"
+        aria-live="polite"
+        aria-atomic="false"
     >
         <TransitionGroup
+            appear
             tag="div"
             name="workspace-notice"
             class="workspace-notice-rail space-y-3"
