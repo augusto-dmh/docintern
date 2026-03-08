@@ -57,7 +57,9 @@ test('upload emits document status updated broadcast event', function (): void {
             && $event->statusFrom === null
             && $event->statusTo === 'uploaded'
             && $event->event === 'document.uploaded'
-            && $event->classification === null,
+            && $event->classification === null
+            && ($event->document['title'] ?? null) === 'Retainer agreement'
+            && ($event->document['matter_title'] ?? null) === $matter->title,
     );
 });
 
@@ -97,7 +99,9 @@ test('status transition emits document status updated broadcast event', function
             && $event->statusFrom === 'ready_for_review'
             && $event->statusTo === 'reviewed'
             && $event->event === 'document.status.transitioned'
-            && $event->classification === null,
+            && $event->classification === null
+            && ($event->document['title'] ?? null) === $document->title
+            && ($event->document['matter_title'] ?? null) === $matter->title,
     );
 });
 
@@ -145,6 +149,8 @@ test('status transition includes classification snapshot when available', functi
             && $event->statusFrom === 'ready_for_review'
             && $event->statusTo === 'reviewed'
             && $event->event === 'document.status.transitioned'
+            && ($event->document['title'] ?? null) === $document->title
+            && ($event->document['matter_title'] ?? null) === $matter->title
             && ($event->classification['provider'] ?? null) === 'openai'
             && ($event->classification['type'] ?? null) === 'contract'
             && (float) ($event->classification['confidence'] ?? 0.0) === 0.92,
