@@ -301,90 +301,7 @@ onBeforeUnmount(async () => {
             class="bg-[linear-gradient(180deg,hsl(34_40%_94%/0.84),hsl(33_32%_92%/0.92))] px-3 py-4 sm:px-5"
         >
             <div
-                v-if="loading"
-                class="max-h-[74vh] overflow-hidden rounded-[1.6rem] border border-[var(--doc-border)]/70 bg-[hsl(34_33%_98%/0.96)] p-3 shadow-[inset_0_1px_0_hsl(0_0%_100%/0.75)] sm:p-4"
-            >
-                <article
-                    class="rounded-[1.35rem] border border-[var(--doc-border)]/65 bg-[linear-gradient(180deg,hsl(38_34%_97%),hsl(36_28%_94%))] p-3 shadow-[0_18px_40px_hsl(22_18%_45%/0.09)]"
-                >
-                    <div class="mb-3 flex items-center justify-between gap-3">
-                        <span
-                            class="doc-subtle text-[11px] font-semibold tracking-[0.14em] uppercase"
-                        >
-                            Preparing page 1
-                        </span>
-                        <span class="doc-subtle text-xs">
-                            Rendering secure review copy
-                        </span>
-                    </div>
-
-                    <div
-                        class="rounded-[1rem] bg-[hsl(36_22%_92%/0.52)] p-2 sm:p-3"
-                    >
-                        <div
-                            class="mx-auto aspect-[0.72] w-full max-w-[42rem] rounded-[0.95rem] bg-white p-6 shadow-[0_24px_55px_hsl(24_18%_26%/0.12)] sm:p-10"
-                        >
-                            <div class="space-y-6">
-                                <div class="flex justify-between gap-4">
-                                    <div class="space-y-2">
-                                        <div
-                                            class="h-3 w-28 rounded-full bg-[var(--doc-border)]/45"
-                                        />
-                                        <div
-                                            class="h-3 w-40 rounded-full bg-[var(--doc-border)]/32"
-                                        />
-                                    </div>
-                                    <div
-                                        class="h-4 w-24 rounded-full bg-[var(--doc-border)]/38"
-                                    />
-                                </div>
-
-                                <div class="space-y-3 pt-4">
-                                    <div
-                                        class="mx-auto h-4 w-40 rounded-full bg-[var(--doc-border)]/42"
-                                    />
-                                    <div
-                                        class="mx-auto h-3 w-56 rounded-full bg-[var(--doc-border)]/30"
-                                    />
-                                </div>
-
-                                <div class="space-y-3 pt-4">
-                                    <div
-                                        class="h-3 w-full rounded-full bg-[var(--doc-border)]/22"
-                                    />
-                                    <div
-                                        class="h-3 w-full rounded-full bg-[var(--doc-border)]/22"
-                                    />
-                                    <div
-                                        class="h-3 w-[88%] rounded-full bg-[var(--doc-border)]/22"
-                                    />
-                                    <div
-                                        class="h-3 w-[92%] rounded-full bg-[var(--doc-border)]/22"
-                                    />
-                                    <div
-                                        class="h-3 w-[72%] rounded-full bg-[var(--doc-border)]/22"
-                                    />
-                                </div>
-
-                                <div class="space-y-3 pt-6">
-                                    <div
-                                        class="h-3 w-[85%] rounded-full bg-[var(--doc-border)]/18"
-                                    />
-                                    <div
-                                        class="h-3 w-[90%] rounded-full bg-[var(--doc-border)]/18"
-                                    />
-                                    <div
-                                        class="h-3 w-[76%] rounded-full bg-[var(--doc-border)]/18"
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </article>
-            </div>
-
-            <div
-                v-else-if="errorMessage"
+                v-if="errorMessage"
                 class="flex min-h-[28rem] items-center justify-center rounded-[1.6rem] border border-dashed border-red-200 bg-red-50/70 px-6 text-center"
             >
                 <div class="space-y-3">
@@ -397,38 +314,150 @@ onBeforeUnmount(async () => {
                 </div>
             </div>
 
-            <div
-                v-else
-                class="max-h-[74vh] space-y-5 overflow-auto rounded-[1.6rem] border border-[var(--doc-border)]/70 bg-[hsl(34_33%_98%/0.96)] p-3 shadow-[inset_0_1px_0_hsl(0_0%_100%/0.75)] sm:p-4"
-            >
-                <article
-                    v-for="pageNumber in pageNumbers"
-                    :key="pageNumber"
-                    class="rounded-[1.35rem] border border-[var(--doc-border)]/65 bg-[linear-gradient(180deg,hsl(38_34%_97%),hsl(36_28%_94%))] p-3 shadow-[0_18px_40px_hsl(22_18%_45%/0.09)]"
+            <div v-else class="relative">
+                <div
+                    class="max-h-[74vh] space-y-5 overflow-auto rounded-[1.6rem] border border-[var(--doc-border)]/70 bg-[hsl(34_33%_98%/0.96)] p-3 shadow-[inset_0_1px_0_hsl(0_0%_100%/0.75)] sm:p-4"
                 >
-                    <div class="mb-3 flex items-center justify-between gap-3">
-                        <span
-                            class="doc-subtle text-[11px] font-semibold tracking-[0.14em] uppercase"
-                        >
-                            Page {{ pageNumber }}
-                        </span>
-                    </div>
-
-                    <div
-                        class="rounded-[1rem] bg-[hsl(36_22%_92%/0.52)] p-2 sm:p-3"
+                    <article
+                        v-if="pageNumbers.length === 0"
+                        aria-hidden="true"
+                        class="rounded-[1.35rem] border border-[var(--doc-border)]/65 bg-[linear-gradient(180deg,hsl(38_34%_97%),hsl(36_28%_94%))] p-3 shadow-[0_18px_40px_hsl(22_18%_45%/0.09)]"
                     >
-                        <canvas
-                            :ref="
-                                (element) =>
-                                    setCanvasRef(
-                                        pageNumber,
-                                        element as HTMLCanvasElement | null,
-                                    )
-                            "
-                            class="mx-auto block rounded-[0.95rem] bg-white shadow-[0_24px_55px_hsl(24_18%_26%/0.12)]"
-                        />
-                    </div>
-                </article>
+                        <div
+                            class="mb-3 flex items-center justify-between gap-3"
+                        >
+                            <span
+                                class="doc-subtle text-[11px] font-semibold tracking-[0.14em] uppercase"
+                            >
+                                Preparing page 1
+                            </span>
+                        </div>
+
+                        <div
+                            class="rounded-[1rem] bg-[hsl(36_22%_92%/0.52)] p-2 sm:p-3"
+                        >
+                            <div
+                                class="mx-auto aspect-[0.72] w-full max-w-[42rem] rounded-[0.95rem] bg-white shadow-[0_24px_55px_hsl(24_18%_26%/0.12)]"
+                            />
+                        </div>
+                    </article>
+
+                    <article
+                        v-for="pageNumber in pageNumbers"
+                        :key="pageNumber"
+                        class="rounded-[1.35rem] border border-[var(--doc-border)]/65 bg-[linear-gradient(180deg,hsl(38_34%_97%),hsl(36_28%_94%))] p-3 shadow-[0_18px_40px_hsl(22_18%_45%/0.09)]"
+                    >
+                        <div
+                            class="mb-3 flex items-center justify-between gap-3"
+                        >
+                            <span
+                                class="doc-subtle text-[11px] font-semibold tracking-[0.14em] uppercase"
+                            >
+                                Page {{ pageNumber }}
+                            </span>
+                        </div>
+
+                        <div
+                            class="rounded-[1rem] bg-[hsl(36_22%_92%/0.52)] p-2 sm:p-3"
+                        >
+                            <canvas
+                                :ref="
+                                    (element) =>
+                                        setCanvasRef(
+                                            pageNumber,
+                                            element as HTMLCanvasElement | null,
+                                        )
+                                "
+                                class="mx-auto block rounded-[0.95rem] bg-white shadow-[0_24px_55px_hsl(24_18%_26%/0.12)]"
+                            />
+                        </div>
+                    </article>
+                </div>
+
+                <div
+                    v-if="loading"
+                    class="pointer-events-none absolute inset-0 rounded-[1.6rem] bg-[hsl(34_35%_97%/0.68)] p-3 backdrop-blur-[1px] sm:p-4"
+                >
+                    <article
+                        class="rounded-[1.35rem] border border-[var(--doc-border)]/65 bg-[linear-gradient(180deg,hsl(38_34%_97%),hsl(36_28%_94%))] p-3 shadow-[0_18px_40px_hsl(22_18%_45%/0.09)]"
+                    >
+                        <div
+                            class="mb-3 flex items-center justify-between gap-3"
+                        >
+                            <span
+                                class="doc-subtle text-[11px] font-semibold tracking-[0.14em] uppercase"
+                            >
+                                Preparing page 1
+                            </span>
+                            <span class="doc-subtle text-xs">
+                                Rendering secure review copy
+                            </span>
+                        </div>
+
+                        <div
+                            class="rounded-[1rem] bg-[hsl(36_22%_92%/0.52)] p-2 sm:p-3"
+                        >
+                            <div
+                                class="mx-auto aspect-[0.72] w-full max-w-[42rem] rounded-[0.95rem] bg-white p-6 shadow-[0_24px_55px_hsl(24_18%_26%/0.12)] sm:p-10"
+                            >
+                                <div class="space-y-6">
+                                    <div class="flex justify-between gap-4">
+                                        <div class="space-y-2">
+                                            <div
+                                                class="h-3 w-28 rounded-full bg-[var(--doc-border)]/45"
+                                            />
+                                            <div
+                                                class="h-3 w-40 rounded-full bg-[var(--doc-border)]/32"
+                                            />
+                                        </div>
+                                        <div
+                                            class="h-4 w-24 rounded-full bg-[var(--doc-border)]/38"
+                                        />
+                                    </div>
+
+                                    <div class="space-y-3 pt-4">
+                                        <div
+                                            class="mx-auto h-4 w-40 rounded-full bg-[var(--doc-border)]/42"
+                                        />
+                                        <div
+                                            class="mx-auto h-3 w-56 rounded-full bg-[var(--doc-border)]/30"
+                                        />
+                                    </div>
+
+                                    <div class="space-y-3 pt-4">
+                                        <div
+                                            class="h-3 w-full rounded-full bg-[var(--doc-border)]/22"
+                                        />
+                                        <div
+                                            class="h-3 w-full rounded-full bg-[var(--doc-border)]/22"
+                                        />
+                                        <div
+                                            class="h-3 w-[88%] rounded-full bg-[var(--doc-border)]/22"
+                                        />
+                                        <div
+                                            class="h-3 w-[92%] rounded-full bg-[var(--doc-border)]/22"
+                                        />
+                                        <div
+                                            class="h-3 w-[72%] rounded-full bg-[var(--doc-border)]/22"
+                                        />
+                                    </div>
+
+                                    <div class="space-y-3 pt-6">
+                                        <div
+                                            class="h-3 w-[85%] rounded-full bg-[var(--doc-border)]/18"
+                                        />
+                                        <div
+                                            class="h-3 w-[90%] rounded-full bg-[var(--doc-border)]/18"
+                                        />
+                                        <div
+                                            class="h-3 w-[76%] rounded-full bg-[var(--doc-border)]/18"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </article>
+                </div>
             </div>
         </div>
     </DocumentExperienceSurface>
