@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\DocumentAnnotationController;
 use App\Http\Controllers\DocumentController;
 use Illuminate\Support\Facades\Route;
 
@@ -16,6 +17,10 @@ Route::middleware(['auth', 'verified', 'tenant'])->group(function (): void {
         ->name('documents.review');
     Route::post('documents/{document}/approve', [DocumentController::class, 'approve'])
         ->name('documents.approve');
+    Route::post('documents/{document}/annotations', [DocumentAnnotationController::class, 'store'])
+        ->name('documents.annotations.store');
+    Route::delete('documents/{document}/annotations/{annotation}', [DocumentAnnotationController::class, 'destroy'])
+        ->name('documents.annotations.destroy');
 
     Route::get('documents/{document}/preview', [DocumentController::class, 'preview'])
         ->name('documents.preview');

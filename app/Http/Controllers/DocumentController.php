@@ -6,11 +6,13 @@ use App\Http\Requests\Documents\StoreDocumentRequest;
 use App\Http\Requests\Documents\UpdateDocumentRequest;
 use App\Models\AuditLog;
 use App\Models\Document;
+use App\Models\DocumentAnnotation;
 use App\Models\Matter;
 use App\Models\User;
 use App\Services\DocumentStatusTransitionService;
 use App\Services\DocumentUploadService;
 use App\Support\DocumentExperienceGuardrails;
+use App\Support\DocumentReviewWorkspacePresenter;
 use Illuminate\Contracts\Filesystem\FileNotFoundException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -77,19 +79,25 @@ class DocumentController extends Controller
         $this->authorize('view', $document);
 
         $this->logDocumentAction($document, $request, 'viewed');
-        $document->load('matter', 'uploader', 'classification', 'extractedData');
+        $document->load(
+            'matter',
+            'uploader',
+            'classification',
+            'extractedData',
+            'annotations.user:id,name',
+        );
         $recentActivity = $document->auditLogs()
             ->with('user:id,name')
             ->latest()
             ->limit(8)
             ->get()
-            ->map(fn (AuditLog $auditLog): array => $this->formatAuditLog($auditLog))
+            ->map(fn (AuditLog $auditLog): array => DocumentReviewWorkspacePresenter::auditLog($auditLog))
             ->values();
 
         return Inertia::render('documents/Show', [
             'document' => $document,
             'recentActivity' => $recentActivity,
-            'reviewWorkspace' => $this->reviewWorkspacePayload($document),
+            'reviewWorkspace' => $this->reviewWorkspacePayload($document, $request),
             'documentExperience' => DocumentExperienceGuardrails::inertiaPayload(),
         ]);
     }
@@ -198,29 +206,6 @@ class DocumentController extends Controller
         ]);
     }
 
-    /**
-     * @return array{id: int, action: string, created_at: string, user: array{id: int, name: string}|null, ip_address: string|null}
-     */
-    protected function formatAuditLog(AuditLog $auditLog): array
-    {
-        $metadata = is_array($auditLog->metadata) ? $auditLog->metadata : [];
-
-        return [
-            'id' => $auditLog->id,
-            'action' => $auditLog->action,
-            'created_at' => $auditLog->created_at->toISOString(),
-            'user' => $auditLog->user
-                ? [
-                    'id' => $auditLog->user->id,
-                    'name' => $auditLog->user->name,
-                ]
-                : null,
-            'ip_address' => is_string($metadata['ip_address'] ?? null)
-                ? $metadata['ip_address']
-                : null,
-        ];
-    }
-
     protected function transitionForManualReview(Request $request, Document $document, string $toStatus): RedirectResponse
     {
         $this->authorize('approve', $document);
@@ -260,12 +245,25 @@ class DocumentController extends Controller
      *         available: bool,
      *         mime_type: string|null,
      *         mode: 'pdf'|'unsupported'
-     *     }
+     *     },
+     *     annotations: array<int, array{
+     *         id: int,
+     *         type: string,
+     *         page_number: int,
+     *         coordinates: array{x: float|int|string, y: float|int|string, width: float|int|string, height: float|int|string},
+     *         content: string|null,
+     *         created_at: string,
+     *         updated_at: string,
+     *         user: array{id: int, name: string}|null,
+     *         is_owner: bool
+     *     }>,
+     *     permissions: array{can_annotate: bool}
      * }
      */
-    protected function reviewWorkspacePayload(Document $document): array
+    protected function reviewWorkspacePayload(Document $document, Request $request): array
     {
         $previewAvailable = $this->documentUploadService->supportsInlinePreview($document);
+        $currentUserId = $request->user()?->id;
 
         return [
             'preview' => [
@@ -275,6 +273,17 @@ class DocumentController extends Controller
                 'available' => $previewAvailable,
                 'mime_type' => $document->mime_type,
                 'mode' => $previewAvailable ? 'pdf' : 'unsupported',
+            ],
+            'annotations' => $document->annotations
+                ->sortBy('id')
+                ->values()
+                ->map(fn (DocumentAnnotation $annotation): array => DocumentReviewWorkspacePresenter::annotation(
+                    $annotation,
+                    $currentUserId,
+                ))
+                ->all(),
+            'permissions' => [
+                'can_annotate' => $previewAvailable && $request->user()?->can('annotate', $document) === true,
             ],
         ];
     }
