@@ -274,7 +274,7 @@ useDocumentChannel({
             />
 
             <div
-                class="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.55fr)_minmax(22rem,0.95fr)]"
+                class="mt-6 grid items-start gap-6 xl:grid-cols-[minmax(0,1.55fr)_minmax(22rem,0.95fr)]"
             >
                 <PdfViewer
                     v-if="
@@ -348,7 +348,7 @@ useDocumentChannel({
             </div>
 
             <div
-                class="mt-6 grid gap-6 xl:grid-cols-[minmax(20rem,0.85fr)_minmax(0,1.15fr)]"
+                class="mt-6 grid items-start gap-6 xl:grid-cols-[minmax(20rem,0.85fr)_minmax(0,1.15fr)]"
             >
                 <DocumentExperienceSurface
                     :document-experience="documentExperience"
