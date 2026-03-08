@@ -4,6 +4,7 @@ use App\Models\AuditLog;
 use App\Models\Client;
 use App\Models\Document;
 use App\Models\DocumentClassification;
+use App\Models\ExtractedData;
 use App\Models\Matter;
 use App\Models\Tenant;
 use App\Models\User;
@@ -158,6 +159,8 @@ test('document show page can be rendered and logs a view event', function () {
             ->where('document.status', 'classifying')
             ->where('document.matter.id', $matter->id)
             ->where('document.uploader.id', $user->id)
+            ->where('reviewWorkspace.preview.available', true)
+            ->where('reviewWorkspace.preview.mode', 'pdf')
         );
 
     expect(AuditLog::query()
@@ -182,6 +185,24 @@ test('document show page includes classification payload when present', function
         'type' => 'contract',
         'confidence' => 0.91,
     ]);
+    ExtractedData::factory()->create([
+        'tenant_id' => $tenant->id,
+        'document_id' => $document->id,
+        'provider' => 'openai',
+        'extracted_text' => "Master Service Agreement\nEffective date: 2026-03-08",
+        'payload' => [
+            'lines' => [
+                'Master Service Agreement',
+                'Effective date: 2026-03-08',
+            ],
+            'key_values' => [
+                ['label' => 'Agreement Type', 'value' => 'Master Service Agreement'],
+            ],
+        ],
+        'metadata' => [
+            'source' => 'openai.chat.completions',
+        ],
+    ]);
 
     tenancy()->initialize($tenant);
 
@@ -194,6 +215,37 @@ test('document show page includes classification payload when present', function
             ->where('document.status', 'ready_for_review')
             ->where('document.classification.provider', 'openai')
             ->where('document.classification.type', 'contract')
+            ->where('document.extracted_data.provider', 'openai')
+            ->where('document.extracted_data.payload.key_values.0.label', 'Agreement Type')
+            ->where('reviewWorkspace.preview.available', true)
+            ->where('reviewWorkspace.preview.mode', 'pdf')
+            ->where('reviewWorkspace.preview.mime_type', 'application/pdf')
+        );
+});
+
+test('document show page marks non pdf documents as unsupported preview mode', function () {
+    [$tenant, $user, $matter] = createDocumentCrudContext();
+    $document = Document::factory()->create([
+        'tenant_id' => $tenant->id,
+        'matter_id' => $matter->id,
+        'uploaded_by' => $user->id,
+        'file_name' => 'engagement-letter.docx',
+        'mime_type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    ]);
+    tenancy()->initialize($tenant);
+
+    $this->actingAs($user)
+        ->withHeaders(['X-Tenant-ID' => $tenant->id])
+        ->get(route('documents.show', $document))
+        ->assertSuccessful()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('documents/Show')
+            ->where('reviewWorkspace.preview.available', false)
+            ->where('reviewWorkspace.preview.mode', 'unsupported')
+            ->where(
+                'reviewWorkspace.preview.mime_type',
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            )
         );
 });
 
@@ -358,4 +410,31 @@ test('document download redirects to a presigned url and logs event', function (
         ->where('auditable_id', $document->id)
         ->where('action', 'downloaded')
         ->exists())->toBeTrue();
+});
+
+test('document preview streams pdf content for authorized tenant user', function () {
+    [$tenant, $user, $matter] = createDocumentCrudContext();
+    tenancy()->initialize($tenant);
+    Storage::fake('s3');
+
+    $document = Document::factory()->create([
+        'tenant_id' => $tenant->id,
+        'matter_id' => $matter->id,
+        'uploaded_by' => $user->id,
+        'file_name' => 'review-copy.pdf',
+        'mime_type' => 'application/pdf',
+        'file_path' => "tenants/{$tenant->id}/documents/{$matter->id}/review-copy.pdf",
+    ]);
+
+    Storage::disk('s3')->put($document->file_path, 'pdf-preview-body');
+
+    $response = $this->actingAs($user)
+        ->withHeaders(['X-Tenant-ID' => $tenant->id])
+        ->get(route('documents.preview', $document));
+
+    $response->assertSuccessful()
+        ->assertHeader('content-type', 'application/pdf')
+        ->assertHeader('content-disposition', 'inline; filename="review-copy.pdf"');
+
+    expect($response->streamedContent())->toBe('pdf-preview-body');
 });
