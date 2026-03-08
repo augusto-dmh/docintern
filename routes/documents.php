@@ -17,6 +17,8 @@ Route::middleware(['auth', 'verified', 'tenant'])->group(function (): void {
     Route::post('documents/{document}/approve', [DocumentController::class, 'approve'])
         ->name('documents.approve');
 
+    Route::get('documents/{document}/preview', [DocumentController::class, 'preview'])
+        ->name('documents.preview');
     Route::get('documents/{document}/download', [DocumentController::class, 'download'])
         ->name('documents.download');
 });
