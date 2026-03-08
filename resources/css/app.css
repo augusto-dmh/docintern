@@ -334,6 +334,193 @@
         color: hsl(27 15% 40%);
     }
 
+    .workspace-notice-rail {
+        position: relative;
+    }
+
+    .workspace-notice-enter-active,
+    .workspace-notice-leave-active {
+        transition:
+            opacity 220ms cubic-bezier(0.22, 1, 0.36, 1),
+            transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+        will-change: opacity, transform;
+    }
+
+    .workspace-notice-enter-from,
+    .workspace-notice-leave-to {
+        opacity: 0;
+        transform: translate3d(0, -8px, 0) scale(0.985);
+    }
+
+    .workspace-notice-enter-to,
+    .workspace-notice-leave-from {
+        opacity: 1;
+        transform: translate3d(0, 0, 0) scale(1);
+    }
+
+    .workspace-notice-move {
+        transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .workspace-notice-card {
+        position: relative;
+        overflow: hidden;
+        border: 1px solid hsl(31 24% 74% / 0.9);
+        border-radius: 1.15rem;
+        background:
+            linear-gradient(
+                148deg,
+                hsl(39 62% 98% / 0.98),
+                hsl(37 50% 94% / 0.94)
+            ),
+            repeating-linear-gradient(
+                180deg,
+                transparent,
+                transparent 24px,
+                hsl(29 20% 52% / 0.05) 24px,
+                hsl(29 20% 52% / 0.05) 25px
+            );
+        box-shadow: 0 20px 35px -30px hsl(24 28% 16% / 0.45);
+        padding: 1rem 1rem 0.95rem;
+        transition:
+            transform 180ms ease,
+            box-shadow 180ms ease,
+            border-color 180ms ease;
+    }
+
+    .workspace-notice-card:hover,
+    .workspace-notice-card:focus-within {
+        transform: translateY(-1px);
+        box-shadow: 0 24px 42px -30px hsl(24 28% 16% / 0.55);
+    }
+
+    .workspace-notice-card::before {
+        content: '';
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 0.35rem;
+        background: var(--doc-seal);
+    }
+
+    .workspace-notice-card--info::before {
+        background: hsl(35 70% 46%);
+    }
+
+    .workspace-notice-card--success::before {
+        background: hsl(149 55% 33%);
+    }
+
+    .workspace-notice-card--failure {
+        border-color: hsl(3 52% 74%);
+        background:
+            linear-gradient(
+                148deg,
+                hsl(11 72% 97% / 0.98),
+                hsl(4 68% 94% / 0.96)
+            ),
+            repeating-linear-gradient(
+                180deg,
+                transparent,
+                transparent 24px,
+                hsl(3 34% 42% / 0.06) 24px,
+                hsl(3 34% 42% / 0.06) 25px
+            );
+    }
+
+    .workspace-notice-card--failure::before {
+        background: hsl(3 74% 42%);
+    }
+
+    .workspace-notice-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2rem;
+        height: 2rem;
+        border-radius: 9999px;
+        background: hsl(38 46% 90% / 0.92);
+        color: hsl(24 32% 20%);
+        flex-shrink: 0;
+    }
+
+    .workspace-notice-dismiss {
+        border-radius: 9999px;
+        color: hsl(27 15% 40%);
+        padding: 0.2rem;
+        transition:
+            background-color 150ms ease,
+            color 150ms ease;
+    }
+
+    .workspace-notice-dismiss:hover {
+        background: hsl(34 32% 88% / 0.75);
+        color: hsl(22 32% 20%);
+    }
+
+    .workspace-notice-meter {
+        overflow: hidden;
+        border-radius: 9999px;
+        background: hsl(31 24% 82% / 0.55);
+        height: 0.24rem;
+    }
+
+    .workspace-notice-meter-bar {
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+            90deg,
+            hsl(35 70% 46% / 0.8),
+            hsl(9 72% 34% / 0.9)
+        );
+        transform-origin: left center;
+        animation: workspace-notice-meter 9s linear forwards;
+    }
+
+    .workspace-notice-card--info .workspace-notice-meter-bar {
+        animation-duration: 7s;
+    }
+
+    .workspace-notice-card--success .workspace-notice-meter-bar {
+        animation-duration: 9s;
+        background: linear-gradient(
+            90deg,
+            hsl(149 55% 33% / 0.75),
+            hsl(35 70% 46% / 0.75)
+        );
+    }
+
+    .workspace-notice-meter-bar--paused {
+        animation-play-state: paused;
+    }
+
+    .workspace-failure-card {
+        border: 1px solid hsl(3 42% 80% / 0.9);
+        border-radius: 1rem;
+        background: linear-gradient(
+            145deg,
+            hsl(10 62% 97% / 0.96),
+            hsl(38 56% 96% / 0.94)
+        );
+        box-shadow: 0 16px 30px -30px hsl(24 28% 16% / 0.45);
+        padding: 1rem;
+    }
+
+    .workspace-failure-empty {
+        background: hsl(39 50% 97% / 0.76);
+    }
+
+    .workspace-failure-empty-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2.25rem;
+        height: 2.25rem;
+        border-radius: 9999px;
+        background: hsl(39 45% 90% / 0.92);
+        color: hsl(27 34% 28%);
+        flex-shrink: 0;
+    }
+
     .workspace-fade-up {
         opacity: 0;
         transform: translateY(16px);
@@ -489,5 +676,15 @@
     to {
         opacity: 1;
         transform: translateY(0);
+    }
+}
+
+@keyframes workspace-notice-meter {
+    from {
+        transform: scaleX(1);
+    }
+
+    to {
+        transform: scaleX(0);
     }
 }

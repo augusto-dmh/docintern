@@ -19,6 +19,7 @@ class DashboardController extends Controller
             'realtimeTenantId' => $realtimeTenantId,
             'pipelineDocuments' => $this->pipelineDocuments($realtimeTenantId),
             'stats' => $this->dashboardStats($realtimeTenantId),
+            'recentFailures' => $this->recentFailures($realtimeTenantId),
         ]);
     }
 
@@ -109,5 +110,34 @@ class DashboardController extends Controller
                 ->whereIn('status', ['scan_failed', 'extraction_failed', 'classification_failed'])
                 ->count(),
         ];
+    }
+
+    /**
+     * @return list<array{id: int, title: string, status: string, matter_title: string|null, updated_at: string}>
+     */
+    protected function recentFailures(?string $tenantId): array
+    {
+        if (! is_string($tenantId) || $tenantId === '') {
+            return [];
+        }
+
+        return Document::query()
+            ->where('tenant_id', $tenantId)
+            ->whereIn('status', ['scan_failed', 'extraction_failed', 'classification_failed'])
+            ->with('matter:id,title')
+            ->latest('updated_at')
+            ->limit(5)
+            ->get()
+            ->map(function (Document $document): array {
+                return [
+                    'id' => $document->id,
+                    'title' => $document->title,
+                    'status' => (string) $document->status,
+                    'matter_title' => $document->matter?->title,
+                    'updated_at' => $document->updated_at->toISOString(),
+                ];
+            })
+            ->values()
+            ->all();
     }
 }
