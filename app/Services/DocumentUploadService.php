@@ -7,6 +7,7 @@ use App\Events\DocumentStatusUpdated;
 use App\Models\Document;
 use App\Models\Matter;
 use App\Models\User;
+use Illuminate\Contracts\Filesystem\FileNotFoundException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -134,6 +135,44 @@ class DocumentUploadService
             $document->file_path,
             now()->addMinutes($ttlMinutes),
         );
+    }
+
+    public function supportsInlinePreview(Document $document): bool
+    {
+        $mimeType = strtolower((string) $document->mime_type);
+
+        if ($mimeType === 'application/pdf') {
+            return true;
+        }
+
+        return Str::endsWith(strtolower($document->file_name), '.pdf');
+    }
+
+    /**
+     * @return resource
+     */
+    public function readStream(Document $document)
+    {
+        if ($document->file_path === '' || $document->file_path === 'pending') {
+            throw new FileNotFoundException('Document file is not available for preview.');
+        }
+
+        $stream = Storage::disk('s3')->readStream($document->file_path);
+
+        if ($stream === false) {
+            throw new FileNotFoundException(
+                sprintf('Unable to open document [%s] for preview.', $document->id),
+            );
+        }
+
+        return $stream;
+    }
+
+    public function previewMimeType(Document $document): string
+    {
+        return $this->supportsInlinePreview($document)
+            ? 'application/pdf'
+            : ($document->mime_type ?: 'application/octet-stream');
     }
 
     public function delete(Document $document, User $user): void

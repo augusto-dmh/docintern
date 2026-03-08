@@ -11,13 +11,16 @@ use App\Models\User;
 use App\Services\DocumentStatusTransitionService;
 use App\Services\DocumentUploadService;
 use App\Support\DocumentExperienceGuardrails;
+use Illuminate\Contracts\Filesystem\FileNotFoundException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class DocumentController extends Controller
 {
@@ -74,7 +77,7 @@ class DocumentController extends Controller
         $this->authorize('view', $document);
 
         $this->logDocumentAction($document, $request, 'viewed');
-        $document->load('matter', 'uploader', 'classification');
+        $document->load('matter', 'uploader', 'classification', 'extractedData');
         $recentActivity = $document->auditLogs()
             ->with('user:id,name')
             ->latest()
@@ -86,6 +89,7 @@ class DocumentController extends Controller
         return Inertia::render('documents/Show', [
             'document' => $document,
             'recentActivity' => $recentActivity,
+            'reviewWorkspace' => $this->reviewWorkspacePayload($document),
             'documentExperience' => DocumentExperienceGuardrails::inertiaPayload(),
         ]);
     }
@@ -147,6 +151,38 @@ class DocumentController extends Controller
         $this->logDocumentAction($document, $request, 'downloaded');
 
         return redirect()->away($this->documentUploadService->generatePresignedUrl($document));
+    }
+
+    public function preview(Document $document): StreamedResponse
+    {
+        $this->authorize('view', $document);
+
+        if (! $this->documentUploadService->supportsInlinePreview($document)) {
+            abort(HttpResponse::HTTP_NOT_FOUND);
+        }
+
+        try {
+            $stream = $this->documentUploadService->readStream($document);
+        } catch (FileNotFoundException) {
+            abort(HttpResponse::HTTP_NOT_FOUND);
+        }
+
+        return response()->stream(
+            function () use ($stream): void {
+                fpassthru($stream);
+
+                if (is_resource($stream)) {
+                    fclose($stream);
+                }
+            },
+            HttpResponse::HTTP_OK,
+            [
+                'Content-Type' => $this->documentUploadService->previewMimeType($document),
+                'Content-Disposition' => sprintf('inline; filename="%s"', addslashes($document->file_name)),
+                'Cache-Control' => 'private, no-store, max-age=0',
+                'X-Content-Type-Options' => 'nosniff',
+            ],
+        );
     }
 
     protected function logDocumentAction(Document $document, Request $request, string $action): void
@@ -215,5 +251,31 @@ class DocumentController extends Controller
         $this->logDocumentAction($document->fresh(), $request, $toStatus);
 
         return to_route('documents.show', $document);
+    }
+
+    /**
+     * @return array{
+     *     preview: array{
+     *         url: string|null,
+     *         available: bool,
+     *         mime_type: string|null,
+     *         mode: 'pdf'|'unsupported'
+     *     }
+     * }
+     */
+    protected function reviewWorkspacePayload(Document $document): array
+    {
+        $previewAvailable = $this->documentUploadService->supportsInlinePreview($document);
+
+        return [
+            'preview' => [
+                'url' => $previewAvailable
+                    ? route('documents.preview', $document)
+                    : null,
+                'available' => $previewAvailable,
+                'mime_type' => $document->mime_type,
+                'mode' => $previewAvailable ? 'pdf' : 'unsupported',
+            ],
+        ];
     }
 }
