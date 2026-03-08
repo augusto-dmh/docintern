@@ -63,8 +63,33 @@ export type DocumentPreviewState = {
     mode: 'pdf' | 'unsupported';
 };
 
+export type DocumentAnnotationType = 'highlight' | 'comment' | 'note';
+
+export type DocumentAnnotationCoordinates = {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+};
+
+export type DocumentAnnotation = {
+    id: number;
+    type: DocumentAnnotationType;
+    page_number: number;
+    coordinates: DocumentAnnotationCoordinates;
+    content: string | null;
+    created_at: string;
+    updated_at: string;
+    user: Pick<User, 'id' | 'name'> | null;
+    is_owner: boolean;
+};
+
 export type DocumentReviewWorkspace = {
     preview: DocumentPreviewState;
+    annotations: DocumentAnnotation[];
+    permissions: {
+        can_annotate: boolean;
+    };
 };
 
 export type DocumentChannelSnapshot = {
@@ -94,6 +119,7 @@ export type Document = {
 export type DocumentActivity = {
     id: number;
     action: string;
+    details: string | null;
     created_at: string;
     user: Pick<User, 'id' | 'name'> | null;
     ip_address: string | null;
@@ -161,10 +187,6 @@ export type DashboardFailureDocument = {
     status: DocumentStatus;
     matter_title: string | null;
     updated_at: string;
-};
-
-export type DocumentAnnotation = {
-    id: number;
 };
 
 export type DocumentComment = {

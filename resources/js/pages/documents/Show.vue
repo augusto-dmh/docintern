@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { ref, watch } from 'vue';
+import DocumentAnnotationController from '@/actions/App/Http/Controllers/DocumentAnnotationController';
 import DocumentController from '@/actions/App/Http/Controllers/DocumentController';
 import MatterController from '@/actions/App/Http/Controllers/MatterController';
 import DocumentExperienceFrame from '@/components/documents/DocumentExperienceFrame.vue';
@@ -13,13 +14,36 @@ import UploadProgressTracker from '@/components/UploadProgressTracker.vue';
 import { useDocumentChannel } from '@/composables/useDocumentChannel';
 import { useEchoConnectionStatus } from '@/composables/useEchoConnectionStatus';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { HttpError, requestJson } from '@/lib/http';
 import {
     type BreadcrumbItem,
     type Document,
     type DocumentActivity,
+    type DocumentAnnotation,
+    type DocumentAnnotationCoordinates,
+    type DocumentAnnotationType,
     type DocumentExperienceGuardrails,
     type DocumentReviewWorkspace,
 } from '@/types';
+
+type AnnotationMutationPayload = {
+    type: DocumentAnnotationType;
+    page_number: number;
+    coordinates: DocumentAnnotationCoordinates;
+    content: string | null;
+};
+
+type AnnotationCreateResponse = {
+    annotation: DocumentAnnotation;
+    activity: DocumentActivity;
+};
+
+type AnnotationDeleteResponse = {
+    annotation_id: number;
+    activity: DocumentActivity;
+};
+
+let nextOptimisticAnnotationId = -1;
 
 const props = defineProps<{
     document: Document;
@@ -28,14 +52,20 @@ const props = defineProps<{
     documentExperience: DocumentExperienceGuardrails;
 }>();
 
-const permissions = usePage().props.auth.permissions;
+const page = usePage();
+const permissions = page.props.auth.permissions as string[];
+const currentUser = page.props.auth.user as { id: number; name: string };
 const canEditDocuments = permissions.includes('edit documents');
 const canApproveDocuments = permissions.includes('approve documents');
 const liveStatus = ref(props.document.status);
 const liveClassification = ref(props.document.classification);
 const liveExtractedData = ref(props.document.extracted_data ?? null);
 const liveUpdatedAt = ref(props.document.updated_at);
+const liveAnnotations = ref(props.reviewWorkspace.annotations);
+const liveRecentActivity = ref(props.recentActivity);
 const refreshingDocumentSnapshot = ref(false);
+const annotationMutationInFlight = ref(false);
+const annotationErrorMessage = ref<string | null>(null);
 const reviewForm = useForm({});
 const approveForm = useForm({});
 const connectionStatus = useEchoConnectionStatus();
@@ -103,6 +133,14 @@ function activityLabel(action: string): string {
         return 'Document approved';
     }
 
+    if (action === 'annotation_created') {
+        return 'Annotation added';
+    }
+
+    if (action === 'annotation_deleted') {
+        return 'Annotation removed';
+    }
+
     return action.replaceAll('_', ' ');
 }
 
@@ -128,7 +166,7 @@ function refreshDocumentSnapshot(): void {
     refreshingDocumentSnapshot.value = true;
 
     router.reload({
-        only: ['document'],
+        only: ['document', 'reviewWorkspace'],
         preserveScroll: true,
         onFinish: () => {
             refreshingDocumentSnapshot.value = false;
@@ -146,6 +184,137 @@ function approveDocument(): void {
     approveForm.submit(DocumentController.approve(props.document), {
         preserveScroll: true,
     });
+}
+
+function prependRecentActivity(activity: DocumentActivity): void {
+    liveRecentActivity.value = [
+        activity,
+        ...liveRecentActivity.value.filter((entry) => entry.id !== activity.id),
+    ].slice(0, 8);
+}
+
+function resolveAnnotationError(
+    error: unknown,
+    fallbackMessage: string,
+): string {
+    if (error instanceof HttpError) {
+        const firstFieldErrors = error.errors
+            ? Object.values(error.errors).flat()[0]
+            : null;
+
+        return firstFieldErrors ?? error.message;
+    }
+
+    if (error instanceof Error) {
+        return error.message;
+    }
+
+    return fallbackMessage;
+}
+
+async function createAnnotation(
+    payload: AnnotationMutationPayload,
+): Promise<void> {
+    if (annotationMutationInFlight.value) {
+        return;
+    }
+
+    annotationMutationInFlight.value = true;
+    annotationErrorMessage.value = null;
+
+    const optimisticTimestamp = new Date().toISOString();
+    const optimisticAnnotation: DocumentAnnotation = {
+        id: nextOptimisticAnnotationId,
+        type: payload.type,
+        page_number: payload.page_number,
+        coordinates: payload.coordinates,
+        content: payload.content,
+        created_at: optimisticTimestamp,
+        updated_at: optimisticTimestamp,
+        user: currentUser,
+        is_owner: true,
+    };
+
+    nextOptimisticAnnotationId -= 1;
+    liveAnnotations.value = [...liveAnnotations.value, optimisticAnnotation];
+
+    try {
+        const response = await requestJson<AnnotationCreateResponse>(
+            DocumentAnnotationController.store.url({
+                document: props.document.id,
+            }),
+            {
+                body: payload,
+            },
+        );
+
+        liveAnnotations.value = liveAnnotations.value.map((annotation) =>
+            annotation.id === optimisticAnnotation.id
+                ? response.annotation
+                : annotation,
+        );
+        prependRecentActivity(response.activity);
+    } catch (error) {
+        liveAnnotations.value = liveAnnotations.value.filter(
+            (annotation) => annotation.id !== optimisticAnnotation.id,
+        );
+        annotationErrorMessage.value = resolveAnnotationError(
+            error,
+            'The annotation could not be saved.',
+        );
+    } finally {
+        annotationMutationInFlight.value = false;
+    }
+}
+
+async function deleteAnnotation(annotation: DocumentAnnotation): Promise<void> {
+    if (annotationMutationInFlight.value) {
+        return;
+    }
+
+    annotationMutationInFlight.value = true;
+    annotationErrorMessage.value = null;
+
+    const existingIndex = liveAnnotations.value.findIndex(
+        (entry) => entry.id === annotation.id,
+    );
+
+    if (existingIndex === -1) {
+        annotationMutationInFlight.value = false;
+
+        return;
+    }
+
+    liveAnnotations.value = liveAnnotations.value.filter(
+        (entry) => entry.id !== annotation.id,
+    );
+
+    try {
+        const response = await requestJson<AnnotationDeleteResponse>(
+            DocumentAnnotationController.destroy.url({
+                document: props.document.id,
+                annotation: annotation.id,
+            }),
+            {
+                method: 'DELETE',
+            },
+        );
+
+        liveAnnotations.value = liveAnnotations.value.filter(
+            (entry) => entry.id !== response.annotation_id,
+        );
+        prependRecentActivity(response.activity);
+    } catch (error) {
+        const restoredAnnotations = [...liveAnnotations.value];
+        restoredAnnotations.splice(existingIndex, 0, annotation);
+        liveAnnotations.value = restoredAnnotations;
+        annotationErrorMessage.value = resolveAnnotationError(
+            error,
+            'The annotation could not be deleted.',
+        );
+    } finally {
+        annotationMutationInFlight.value = false;
+    }
 }
 
 watch(
@@ -173,6 +342,20 @@ watch(
     () => props.document.updated_at,
     (updatedAt) => {
         liveUpdatedAt.value = updatedAt;
+    },
+);
+
+watch(
+    () => props.reviewWorkspace.annotations,
+    (annotations) => {
+        liveAnnotations.value = annotations;
+    },
+);
+
+watch(
+    () => props.recentActivity,
+    (recentActivity) => {
+        liveRecentActivity.value = recentActivity;
     },
 );
 
@@ -276,16 +459,33 @@ useDocumentChannel({
             <div
                 class="mt-6 grid items-start gap-6 xl:grid-cols-[minmax(0,1.55fr)_minmax(22rem,0.95fr)]"
             >
-                <PdfViewer
+                <div
                     v-if="
                         reviewWorkspace.preview.available &&
                         reviewWorkspace.preview.url
                     "
-                    :document-experience="documentExperience"
-                    :src="reviewWorkspace.preview.url"
-                    :title="document.file_name"
-                    :delay="1"
-                />
+                    class="space-y-3"
+                >
+                    <PdfViewer
+                        :document-experience="documentExperience"
+                        :src="reviewWorkspace.preview.url"
+                        :title="document.file_name"
+                        :annotations="liveAnnotations"
+                        :can-annotate="reviewWorkspace.permissions.can_annotate"
+                        :can-delete-any-annotation="canApproveDocuments"
+                        :mutation-pending="annotationMutationInFlight"
+                        :delay="1"
+                        @create-annotation="createAnnotation"
+                        @delete-annotation="deleteAnnotation"
+                    />
+
+                    <p
+                        v-if="annotationErrorMessage"
+                        class="rounded-2xl border border-red-200/70 bg-red-50/80 px-4 py-3 text-sm text-red-700"
+                    >
+                        {{ annotationErrorMessage }}
+                    </p>
+                </div>
 
                 <DocumentExperienceSurface
                     v-else
@@ -475,13 +675,13 @@ useDocumentChannel({
                         <span
                             class="doc-subtle text-xs font-semibold tracking-[0.12em] uppercase"
                         >
-                            {{ recentActivity.length }} events
+                            {{ liveRecentActivity.length }} events
                         </span>
                     </div>
 
                     <ol class="space-y-3">
                         <li
-                            v-for="activity in recentActivity"
+                            v-for="activity in liveRecentActivity"
                             :key="activity.id"
                             class="doc-grid-line rounded-xl border p-4"
                         >
@@ -501,6 +701,13 @@ useDocumentChannel({
                                 <span v-if="activity.ip_address">
                                     • {{ activity.ip_address }}
                                 </span>
+                            </p>
+
+                            <p
+                                v-if="activity.details"
+                                class="doc-subtle mt-2 text-xs leading-5"
+                            >
+                                {{ activity.details }}
                             </p>
                         </li>
                     </ol>
