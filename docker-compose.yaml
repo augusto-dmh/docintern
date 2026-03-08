@@ -37,15 +37,24 @@ services:
       - AWS_USE_PATH_STYLE_ENDPOINT=${AWS_USE_PATH_STYLE_ENDPOINT:-false}
       - FILESYSTEM_DISK=s3
       - QUEUE_CONNECTION=rabbitmq
+      - BROADCAST_CONNECTION=reverb
       - PROCESSING_QUEUE_CONNECTION=rabbitmq
       - PROCESSING_OCR_PROVIDER=openai
       - PROCESSING_CLASSIFICATION_PROVIDER=openai
+      - REVERB_APP_ID=${REVERB_APP_ID:-docintern-local}
+      - REVERB_APP_KEY=${REVERB_APP_KEY:-docintern-key}
+      - REVERB_APP_SECRET=${REVERB_APP_SECRET:-docintern-secret}
+      - REVERB_HOST=reverb
+      - REVERB_PORT=${REVERB_PORT:-8080}
+      - REVERB_SCHEME=${REVERB_SCHEME:-http}
     depends_on:
       mysql:
         condition: service_healthy
       redis:
         condition: service_healthy
       rabbitmq:
+        condition: service_healthy
+      reverb:
         condition: service_healthy
     networks:
       - docintern
@@ -98,8 +107,55 @@ services:
     volumes:
       - .:/var/www/html
       - /var/www/html/node_modules # Prevent node_modules override from host
+    environment:
+      - VITE_REVERB_APP_KEY=${VITE_REVERB_APP_KEY:-docintern-key}
+      - VITE_REVERB_HOST=${VITE_REVERB_HOST:-localhost}
+      - VITE_REVERB_PORT=${VITE_REVERB_PORT:-8080}
+      - VITE_REVERB_SCHEME=${VITE_REVERB_SCHEME:-http}
     networks:
       - docintern
+
+  # ——————————————————————————————————————————————
+  # Laravel Reverb (WebSocket Server)
+  # ——————————————————————————————————————————————
+  reverb:
+    build:
+      context: .
+      dockerfile: docker/reverb/Dockerfile
+    container_name: docintern-reverb
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - .:/var/www/html
+      - vendor_data:/var/www/html/vendor
+    environment:
+      - APP_ENV=${APP_ENV:-local}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REVERB_SERVER_HOST=0.0.0.0
+      - REVERB_SERVER_PORT=8080
+      - REVERB_APP_ID=${REVERB_APP_ID:-docintern-local}
+      - REVERB_APP_KEY=${REVERB_APP_KEY:-docintern-key}
+      - REVERB_APP_SECRET=${REVERB_APP_SECRET:-docintern-secret}
+      - REVERB_HOST=reverb
+      - REVERB_PORT=${REVERB_PORT:-8080}
+      - REVERB_SCHEME=${REVERB_SCHEME:-http}
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - docintern
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "php -r \"exit(@fsockopen('localhost', 8080) ? 0 : 1);\"",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
 
   # ——————————————————————————————————————————————
   # Queue Workers (Supervisor-managed consumers)
@@ -131,9 +187,16 @@ services:
       - AWS_USE_PATH_STYLE_ENDPOINT=${AWS_USE_PATH_STYLE_ENDPOINT:-false}
       - FILESYSTEM_DISK=s3
       - QUEUE_CONNECTION=rabbitmq
+      - BROADCAST_CONNECTION=reverb
       - PROCESSING_QUEUE_CONNECTION=rabbitmq
       - PROCESSING_OCR_PROVIDER=openai
       - PROCESSING_CLASSIFICATION_PROVIDER=openai
+      - REVERB_APP_ID=${REVERB_APP_ID:-docintern-local}
+      - REVERB_APP_KEY=${REVERB_APP_KEY:-docintern-key}
+      - REVERB_APP_SECRET=${REVERB_APP_SECRET:-docintern-secret}
+      - REVERB_HOST=reverb
+      - REVERB_PORT=${REVERB_PORT:-8080}
+      - REVERB_SCHEME=${REVERB_SCHEME:-http}
     depends_on:
       app:
         condition: service_healthy
@@ -142,6 +205,8 @@ services:
       redis:
         condition: service_healthy
       rabbitmq:
+        condition: service_healthy
+      reverb:
         condition: service_healthy
     networks:
       - docintern

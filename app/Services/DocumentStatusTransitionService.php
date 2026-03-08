@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Events\DocumentProcessingEvent;
+use App\Events\DocumentStatusUpdated;
 use App\Models\Document;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -40,8 +41,7 @@ class DocumentStatusTransitionService
         string $consumerName = 'pipeline-transition',
         ?string $messageId = null,
         array $metadata = [],
-    ): Document
-    {
+    ): Document {
         /**
          * @var array{
          *     document: Document,
@@ -107,7 +107,24 @@ class DocumentStatusTransitionService
             retryCount: 0,
         ));
 
-        return $transitionResult['document'];
+        $transitionedDocument = $transitionResult['document']->load('classification');
+
+        event(new DocumentStatusUpdated(
+            documentId: $transitionedDocument->id,
+            tenantId: $transitionedDocument->tenant_id,
+            statusFrom: is_string($transitionResult['metadata']['from_status'] ?? null)
+                ? $transitionResult['metadata']['from_status']
+                : null,
+            statusTo: is_string($transitionResult['metadata']['to_status'] ?? null)
+                ? $transitionResult['metadata']['to_status']
+                : $toStatus,
+            event: 'document.status.transitioned',
+            traceId: $transitionResult['trace_id'],
+            occurredAt: now()->toImmutable(),
+            classification: $this->formatClassificationSnapshot($transitionedDocument),
+        ));
+
+        return $transitionedDocument;
     }
 
     public function canTransition(string $fromStatus, string $toStatus): bool
@@ -124,5 +141,23 @@ class DocumentStatusTransitionService
         }
 
         return (string) Str::uuid();
+    }
+
+    /**
+     * @return array{provider: string, type: string, confidence: float|string|null}|null
+     */
+    protected function formatClassificationSnapshot(Document $document): ?array
+    {
+        $classification = $document->classification;
+
+        if ($classification === null) {
+            return null;
+        }
+
+        return [
+            'provider' => $classification->provider,
+            'type' => $classification->type,
+            'confidence' => $classification->confidence,
+        ];
     }
 }

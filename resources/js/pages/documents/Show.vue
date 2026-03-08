@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
+import { ref, watch } from 'vue';
 import DocumentController from '@/actions/App/Http/Controllers/DocumentController';
 import MatterController from '@/actions/App/Http/Controllers/MatterController';
 import DocumentExperienceFrame from '@/components/documents/DocumentExperienceFrame.vue';
 import DocumentExperienceSurface from '@/components/documents/DocumentExperienceSurface.vue';
 import DocumentStatusBadge from '@/components/documents/DocumentStatusBadge.vue';
 import { Button } from '@/components/ui/button';
+import { useDocumentChannel } from '@/composables/useDocumentChannel';
 import AppLayout from '@/layouts/AppLayout.vue';
 import {
     type BreadcrumbItem,
@@ -23,6 +25,9 @@ const props = defineProps<{
 const permissions = usePage().props.auth.permissions;
 const canEditDocuments = permissions.includes('edit documents');
 const canApproveDocuments = permissions.includes('approve documents');
+const liveStatus = ref(props.document.status);
+const liveClassification = ref(props.document.classification);
+const refreshingDocumentSnapshot = ref(false);
 const reviewForm = useForm({});
 const approveForm = useForm({});
 
@@ -107,11 +112,31 @@ function formatConfidence(value: number | string | null | undefined): string {
 }
 
 function canMarkReviewed(): boolean {
-    return canApproveDocuments && props.document.status === 'ready_for_review';
+    return canApproveDocuments && liveStatus.value === 'ready_for_review';
 }
 
 function canApproveDocument(): boolean {
-    return canApproveDocuments && props.document.status === 'reviewed';
+    return canApproveDocuments && liveStatus.value === 'reviewed';
+}
+
+function shouldRefreshDocumentSnapshotForClassification(status: string): boolean {
+    return ['ready_for_review', 'reviewed', 'approved'].includes(status);
+}
+
+function refreshDocumentSnapshot(): void {
+    if (refreshingDocumentSnapshot.value) {
+        return;
+    }
+
+    refreshingDocumentSnapshot.value = true;
+
+    router.reload({
+        only: ['document'],
+        preserveScroll: true,
+        onFinish: () => {
+            refreshingDocumentSnapshot.value = false;
+        },
+    });
 }
 
 function markReviewed(): void {
@@ -125,6 +150,45 @@ function approveDocument(): void {
         preserveScroll: true,
     });
 }
+
+watch(
+    () => props.document.status,
+    (status) => {
+        liveStatus.value = status;
+    },
+);
+
+watch(
+    () => props.document.classification,
+    (classification) => {
+        liveClassification.value = classification;
+    },
+);
+
+useDocumentChannel({
+    tenantId: props.document.tenant_id,
+    documentId: props.document.id,
+    onStatusUpdated: (payload) => {
+        if (payload.document_id !== props.document.id) {
+            return;
+        }
+
+        liveStatus.value = payload.status_to;
+
+        if (payload.classification !== null) {
+            liveClassification.value = payload.classification;
+
+            return;
+        }
+
+        if (
+            liveClassification.value === null
+            && shouldRefreshDocumentSnapshotForClassification(payload.status_to)
+        ) {
+            refreshDocumentSnapshot();
+        }
+    },
+});
 </script>
 
 <template>
@@ -139,7 +203,7 @@ function approveDocument(): void {
             <template #description>
                 <span class="inline-flex items-center gap-2">
                     <span class="doc-subtle text-sm">Current status</span>
-                    <DocumentStatusBadge :status="document.status" />
+                    <DocumentStatusBadge :status="liveStatus" />
                 </span>
             </template>
 
@@ -235,7 +299,7 @@ function approveDocument(): void {
                             Status
                         </dt>
                         <dd class="mt-1">
-                            <DocumentStatusBadge :status="document.status" />
+                            <DocumentStatusBadge :status="liveStatus" />
                         </dd>
                     </div>
 
@@ -310,10 +374,7 @@ function approveDocument(): void {
             >
                 <h2 class="doc-title text-xl font-semibold">Classification</h2>
 
-                <div
-                    v-if="document.classification"
-                    class="mt-4 grid gap-5 sm:grid-cols-3"
-                >
+                <div v-if="liveClassification" class="mt-4 grid gap-5 sm:grid-cols-3">
                     <div>
                         <p
                             class="doc-subtle text-xs font-semibold tracking-[0.12em] uppercase"
@@ -321,7 +382,7 @@ function approveDocument(): void {
                             Provider
                         </p>
                         <p class="mt-1 text-sm">
-                            {{ document.classification.provider }}
+                            {{ liveClassification.provider }}
                         </p>
                     </div>
                     <div>
@@ -331,7 +392,7 @@ function approveDocument(): void {
                             Type
                         </p>
                         <p class="mt-1 text-sm">
-                            {{ document.classification.type }}
+                            {{ liveClassification.type }}
                         </p>
                     </div>
                     <div>
@@ -341,11 +402,7 @@ function approveDocument(): void {
                             Confidence
                         </p>
                         <p class="mt-1 text-sm">
-                            {{
-                                formatConfidence(
-                                    document.classification.confidence,
-                                )
-                            }}
+                            {{ formatConfidence(liveClassification.confidence) }}
                         </p>
                     </div>
                 </div>
