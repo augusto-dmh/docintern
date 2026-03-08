@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { ref, watch } from 'vue';
 import DocumentController from '@/actions/App/Http/Controllers/DocumentController';
 import MatterController from '@/actions/App/Http/Controllers/MatterController';
@@ -27,6 +27,7 @@ const canEditDocuments = permissions.includes('edit documents');
 const canApproveDocuments = permissions.includes('approve documents');
 const liveStatus = ref(props.document.status);
 const liveClassification = ref(props.document.classification);
+const refreshingDocumentSnapshot = ref(false);
 const reviewForm = useForm({});
 const approveForm = useForm({});
 
@@ -118,6 +119,26 @@ function canApproveDocument(): boolean {
     return canApproveDocuments && liveStatus.value === 'reviewed';
 }
 
+function shouldRefreshDocumentSnapshotForClassification(status: string): boolean {
+    return ['ready_for_review', 'reviewed', 'approved'].includes(status);
+}
+
+function refreshDocumentSnapshot(): void {
+    if (refreshingDocumentSnapshot.value) {
+        return;
+    }
+
+    refreshingDocumentSnapshot.value = true;
+
+    router.reload({
+        only: ['document'],
+        preserveScroll: true,
+        onFinish: () => {
+            refreshingDocumentSnapshot.value = false;
+        },
+    });
+}
+
 function markReviewed(): void {
     reviewForm.submit(DocumentController.review(props.document), {
         preserveScroll: true,
@@ -153,7 +174,19 @@ useDocumentChannel({
         }
 
         liveStatus.value = payload.status_to;
-        liveClassification.value = payload.classification;
+
+        if (payload.classification !== null) {
+            liveClassification.value = payload.classification;
+
+            return;
+        }
+
+        if (
+            liveClassification.value === null
+            && shouldRefreshDocumentSnapshotForClassification(payload.status_to)
+        ) {
+            refreshDocumentSnapshot();
+        }
     },
 });
 </script>
